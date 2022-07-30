@@ -399,13 +399,16 @@
     // Fill Background
     ctx.fillStyle = el.artyOptions.visualGridColorA;
     ctx.fillRect(0, 0, w, h);
+    let gridPatternX = Math.floor(offsetX / gridSize);
+    let gridPatternY = Math.floor(offsetY / gridSize);
+    let gridPattern = (gridPatternX + gridPatternY) % 2
     let gridOffsetX = offsetX % gridSize;
     let gridOffsetY = offsetY % gridSize;
     let gridCountX = Math.ceil(w / scale / gridSize) + 1;
     let gridCountY = Math.ceil(h / scale / gridSize) + 1;
     ctx.fillStyle = el.artyOptions.visualGridColorB;
     for (let gridY = 0; gridY < gridCountY; gridY++) {
-      let gridFill = (gridY % 2 == 0);
+      let gridFill = (gridY % 2 == gridPattern);
       for (let gridX = 0; gridX < gridCountX; gridX++) {
         if (gridFill) {
           ctx.fillRect(
