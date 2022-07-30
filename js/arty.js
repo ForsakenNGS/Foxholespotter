@@ -114,7 +114,18 @@
     $(el).find(el.artyOptions.targetListCss).append(elTarget);
     el.artyOptions.targetElements.push(elTarget);
     let i = el.artyOptions.targetElements.length;
-    elTarget.find('[data-input="target-distance"],[data-input="target-azimuth"]').on("change", function() {
+    elTarget.find('[data-input="target-distance"]').on("change", function() {
+      updateLazy(el);
+    });
+    elTarget.find('[data-input="target-azimuth"]').on("change", function() {
+      let value = parseFloat($(this).val());
+      if (!isNaN(value)) {
+        if (value < 0) {
+          $(this).val(360 + value);
+        } else if (value > 360) {
+          $(this).val(value - 360);
+        }
+      }
       updateLazy(el);
     });
     elTarget.find('[data-action="target-add"]').on("click", function(e) {
@@ -165,7 +176,18 @@
     $(el).find(el.artyOptions.gunListCss).append(elGun);
     el.artyOptions.gunElements.push(elGun);
     let i = el.artyOptions.gunElements.length;
-    elGun.find('[data-input="gun-distance"],[data-input="gun-azimuth"]').on("change", function() {
+    elGun.find('[data-input="gun-distance"]').on("change", function() {
+      updateLazy(el);
+    });
+    elGun.find('[data-input="gun-azimuth"]').on("change", function() {
+      let value = parseFloat($(this).val());
+      if (!isNaN(value)) {
+        if (value < 0) {
+          $(this).val(360 + value);
+        } else if (value > 360) {
+          $(this).val(value - 360);
+        }
+      }
       updateLazy(el);
     });
     elGun.find('[data-action="gun-add"]').on("click", function(e) {
@@ -224,7 +246,7 @@
         elGunTarget.find('[data-input="gun-target"]').attr("data-index", i + 1);
         elGunTarget.find('[data-action="gun-target-copy"]').on("click", function(e) {
           e.preventDefault();
-          let text = elGunTarget.find('[data-input="gun-target"]').val();
+          let text = elGunTarget.find('[data-input="gun-target"]').val() || "";
           navigator.clipboard.writeText(text);
         });
         i++;
@@ -258,16 +280,16 @@
   let updateGunTargetValues = function(el) {
     jQuery(el.artyOptions.gunElements).each(function() {
       let elGunJs = this;
-      let gunDist = $(this).find('[data-input="gun-distance"]').val();
-      let gunAngleAzim = $(this).find('[data-input="gun-azimuth"]').val();
+      let gunDist = $(this).find('[data-input="gun-distance"]').val() || 0;
+      let gunAngleAzim = $(this).find('[data-input="gun-azimuth"]').val() || 0;
       let gunPosition = null;
       if ((gunDist !== "") && (gunAngleAzim !== "")) {
         gunPosition = calcAzimToCartesian(gunDist, gunAngleAzim);
       }
       let i = 0;
       jQuery(el.artyOptions.targetElements).each(function() {
-        let targetDist = $(this).find('[data-input="target-distance"]').val();
-        let targetAngleAzim = $(this).find('[data-input="target-azimuth"]').val();
+        let targetDist = $(this).find('[data-input="target-distance"]').val() || 0;
+        let targetAngleAzim = $(this).find('[data-input="target-azimuth"]').val() || 0;
         let targetPosition = null;
         if ((targetDist !== "") && (targetAngleAzim !== "")) {
           targetPosition = calcAzimToCartesian(targetDist, targetAngleAzim);
@@ -319,8 +341,8 @@
     let targetPositions = [];
     i = 0;
     jQuery(el.artyOptions.targetElements).each(function() {
-      let targetDist = $(this).find('[data-input="target-distance"]').val();
-      let targetAngleAzim = $(this).find('[data-input="target-azimuth"]').val();
+      let targetDist = $(this).find('[data-input="target-distance"]').val() || 0;
+      let targetAngleAzim = $(this).find('[data-input="target-azimuth"]').val() || 0;
       if ((targetDist !== "") && (targetAngleAzim !== "")) {
         targetPositions.push(calcAzimToCartesian(targetDist, targetAngleAzim));
       }
@@ -330,8 +352,8 @@
     let gunPositions = [];
     i = 0;
     jQuery(el.artyOptions.gunElements).each(function() {
-      let gunDist = $(this).find('[data-input="gun-distance"]').val();
-      let gunAngleAzim = $(this).find('[data-input="gun-azimuth"]').val();
+      let gunDist = $(this).find('[data-input="gun-distance"]').val() || 0;
+      let gunAngleAzim = $(this).find('[data-input="gun-azimuth"]').val() || 0;
       if ((gunDist !== "") && (gunAngleAzim !== "")) {
         gunPositions.push(calcAzimToCartesian(gunDist, gunAngleAzim));
       }
