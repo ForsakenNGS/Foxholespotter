@@ -6,17 +6,101 @@
     <title>Foxhole Artillery Calculator</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.9.1/font/bootstrap-icons.css">
 </head>
 <body>
-    <div class="container">
+    <div id="arty" class="m-3">
+      <div class="row">
+        <div class="col-md-4" style="max-height: calc(100vh - 2rem); overflow-y: auto;">
+          <div class="target-list"></div>
+          <div class="gun-list"></div>
+        </div>
+        <div class="col-md-8 ">
+          <canvas class="visual-aid" style='width: 100%; height: calc(100vh - 2rem);'></div>
+        </div>
+      </div>
+
     </div>
 
+    <!-- jQuery: Slim Minified -->
+    <script src="https://code.jquery.com/jquery-3.6.0.slim.min.js" integrity="sha256-u7e5khyithlIdTpu22PHhENmPcRdFiHRjhAuHcs05RI=" crossorigin="anonymous"></script>
     <!-- Bootstrap: JavaScript Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous"></script>
 
+    <script type="text/html" id="template-target">
+      <div class="card mb-3">
+        <h5 class="card-header">
+          Target <span class="target-index">?</span>
+          <a href="#delete" class="float-end text-danger" data-action="target-delete" title="Remove target">
+            <i class="bi bi-trash3-fill"></i>
+          </a>
+          <a href="#add" class="float-end text-success me-2" data-action="target-add" title="Add target">
+            <i class="bi bi-plus-circle"></i>
+          </a>
+        </h5>
+        <div class="card-body">
+          <div class="input-group input-group-sm mb-1">
+            <span class="input-group-text col-md-3">Distance</span>
+            <input type="number" class="form-control" data-input="target-distance"
+              min="0" max="300" step="1" placeholder="Target distance (from spotter)" value="100">
+            <span class="input-group-text col-md-2">Meters</span>
+          </div>
+          <div class="input-group input-group-sm">
+            <span class="input-group-text col-md-2">Azimuth</span>
+            <input type="number" class="form-control" data-input="target-azimuth"
+              min="-1" max="361" step="1" placeholder="Target azimuth (from spotter)" value="0">
+            <span class="input-group-text col-md-2">Degrees</span>
+          </div>
+        </div>
+      </div>
+    </script>
+    <script type="text/html" id="template-gun">
+      <div class="card mb-3">
+        <h5 class="card-header">
+          Gun <span class="gun-index">?</span>
+          <a href="#delete" class="float-end text-danger" data-action="gun-delete" title="Remove gun">
+            <i class="bi bi-trash3-fill"></i>
+          </a>
+          <a href="#add" class="float-end text-success me-2" data-action="gun-add" title="Add gun">
+            <i class="bi bi-plus-circle"></i>
+          </a>
+        </h5>
+        <div class="card-body">
+          <div class="input-group input-group-sm mb-1">
+            <span class="input-group-text col-md-3">Distance</span>
+            <input type="number" class="form-control" data-input="gun-distance"
+              min="0" max="300" step="1" placeholder="Gun distance (from spotter)" value="100">
+            <span class="input-group-text col-md-2">Meters</span>
+          </div>
+          <div class="input-group input-group-sm">
+            <span class="input-group-text col-md-3">Azimuth</span>
+            <input type="number" class="form-control" data-input="gun-azimuth"
+              min="-1" max="361" step="1" placeholder="Gun azimuth (from spotter)" value="90">
+            <span class="input-group-text col-md-2">Degrees</span>
+          </div>
+          <div data-list="targets">
+
+          </div>
+        </div>
+      </div>
+    </script>
+    <script type="text/html" id="template-gun-target">
+      <div class="input-group input-group-sm mt-1">
+        <span class="input-group-text col-md-4">Target <span class="target-index">?</span></span>
+        <input type="text" class="form-control" data-input="gun-target" data-index="0" readonly>
+        <button type="button" class="btn btn-outline-primary" data-action="gun-target-copy">
+          <i class="bi bi-clipboard"></i>
+        </button>
+      </div>
+    </script>
+
     <script type="text/javascript" src="./js/arty.js"></script>
     <script type="text/javascript">
-      // TODO
+      jQuery("#arty").arty({
+        targetTemplate: jQuery("#template-target").html(),
+        gunTemplate: jQuery("#template-gun").html(),
+        gunTargetTemplate: jQuery("#template-gun-target").html()
+      });
     </script>
 </body>
 </html>
