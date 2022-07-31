@@ -31,6 +31,12 @@
     <script type="text/html" id="template-target">
       <div class="card mb-3">
         <h5 class="card-header">
+          <a href="#minimize" class="float-start me-2" data-action="card-minimize" data-visible="maximized">
+            <i class="bi bi-dash-square-dotted"></i>
+          </a>
+          <a href="#maximize" class="float-start me-2" data-action="card-maximize" data-visible="minimized">
+            <i class="bi bi-plus-square-dotted"></i>
+          </a>
           Target <span class="target-index">?</span>
           <a href="#delete" class="float-end text-danger" data-action="target-delete" title="Remove target">
             <i class="bi bi-trash3-fill"></i>
@@ -39,7 +45,7 @@
             <i class="bi bi-plus-circle"></i>
           </a>
         </h5>
-        <div class="card-body">
+        <div class="card-body" data-visible="maximized">
           <div class="input-group input-group-sm mb-1">
             <span class="input-group-text col-md-3">Distance</span>
             <input type="number" class="form-control" data-input="target-distance"
@@ -58,6 +64,12 @@
     <script type="text/html" id="template-reference">
       <div class="card mb-3">
         <h5 class="card-header">
+          <a href="#minimize" class="float-start me-2" data-action="card-minimize" data-visible="maximized">
+            <i class="bi bi-dash-square-dotted"></i>
+          </a>
+          <a href="#maximize" class="float-start me-2" data-action="card-maximize" data-visible="minimized">
+            <i class="bi bi-plus-square-dotted"></i>
+          </a>
           Ref-Point <span class="reference-index">?</span>
           <a href="#delete" class="float-end text-danger" data-action="reference-delete" title="Remove reference point">
             <i class="bi bi-trash3-fill"></i>
@@ -66,7 +78,7 @@
             <i class="bi bi-plus-circle"></i>
           </a>
         </h5>
-        <div class="card-body">
+        <div class="card-body" data-visible="maximized">
           <div class="input-group input-group-sm mb-1">
             <span class="input-group-text col-md-3">Reference</span>
             <select class="form-control" data-input="reference-reference"></select>
@@ -89,6 +101,12 @@
     <script type="text/html" id="template-gun">
       <div class="card mb-3">
         <h5 class="card-header">
+          <a href="#minimize" class="float-start me-2" data-action="card-minimize" data-visible="maximized">
+            <i class="bi bi-dash-square-dotted"></i>
+          </a>
+          <a href="#maximize" class="float-start me-2" data-action="card-maximize" data-visible="minimized">
+            <i class="bi bi-plus-square-dotted"></i>
+          </a>
           Gun <span class="gun-index">?</span>
           <a href="#delete" class="float-end text-danger" data-action="gun-delete" title="Remove gun">
             <i class="bi bi-trash3-fill"></i>
@@ -101,17 +119,17 @@
           </a>
         </h5>
         <div class="card-body">
-          <div class="input-group input-group-sm mb-1">
+          <div class="input-group input-group-sm mb-1" data-visible="maximized">
             <span class="input-group-text col-md-3">Reference</span>
             <select class="form-control" data-input="gun-reference"></select>
           </div>
-          <div class="input-group input-group-sm mb-1">
+          <div class="input-group input-group-sm mb-1" data-visible="maximized">
             <span class="input-group-text col-md-3">Distance</span>
             <input type="number" class="form-control" data-input="gun-distance"
               min="0" max="300" step="1" placeholder="Gun distance (from spotter)" value="">
             <span class="input-group-text col-md-2">Meters</span>
           </div>
-          <div class="input-group input-group-sm">
+          <div class="input-group input-group-sm" data-visible="maximized">
             <span class="input-group-text col-md-3">Azimuth</span>
             <input type="number" class="form-control" data-input="gun-azimuth"
               min="-1" max="361" step="1" placeholder="Gun azimuth (from spotter)" value="0">

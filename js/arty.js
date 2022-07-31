@@ -144,9 +144,11 @@
       delTarget(el, index);
     });
     updateTargetIndex(el, elTarget, i);
+    bindCard(el, elTarget);
     // Update
     updateGunTargets(el);
     updateLazy(el);
+    return i;
   };
 
   // Delete target (input form)
@@ -206,10 +208,12 @@
       delReference(el, index);
     });
     updateReferenceIndex(el, elReference, i);
+    bindCard(el, elReference);
     // Update
     updateGunReferences(el);
     updateReferenceRefeferences(el);
     updateLazy(el);
+    return i;
   };
 
   // Delete reference (input form)
@@ -235,7 +239,7 @@
   // Update reference list (input form)
   let updateReferenceRefeferences = function(el, elReference, index) {
     if (typeof elReference == "undefined") {
-      let i = 0;
+      let i = 1;
       jQuery(el.artyOptions.referenceElements).each(function() {
         updateReferenceRefeferences(el, this, i);
         i++;
@@ -245,12 +249,12 @@
     elReference.find('[data-input="reference-reference"]').each(function() {
       let elReferenceList = this;
       let elReferenceValue = $(this).val() || "spotter";
-      $(elReferenceList).html('<option value="spotter">Spotter to Ref-Point '+(index+1)+'</option>');
+      $(elReferenceList).html('<option value="spotter">Spotter to Ref-Point '+index+'</option>');
       // Add reference points
-      let i = 0;
+      let i = 1;
       jQuery(el.artyOptions.referenceElements).each(function() {
         if (i < index) {
-          let elReference = $('<option value="ref-point-'+i+'">Ref-Point '+(index+1)+' to Ref-Point '+(i+1)+'</option>');
+          let elReference = $('<option value="ref-point-'+i+'">Ref-Point '+index+' to Ref-Point '+i+'</option>');
           $(elReferenceList).append(elReference);
         }
         i++;
@@ -270,6 +274,9 @@
     $(el).find(el.artyOptions.gunListCss).append(elGun);
     el.artyOptions.gunElements.push(elGun);
     let i = el.artyOptions.gunElements.length;
+    elGun.find('[data-input="gun-reference"]').on("change", function() {
+      updateLazy(el);
+    });
     elGun.find('[data-input="gun-distance"]').on("change", function() {
       updateLazy(el);
     });
@@ -290,7 +297,8 @@
     });
     elGun.find('[data-action="gun-add-reference"]').on("click", function(e) {
       e.preventDefault();
-      addReference(el);
+      let referenceIndex = addReference(el);
+      elGun.find('[data-input="gun-reference"]').val("ref-point-"+referenceIndex)
     });
     elGun.find('[data-action="gun-delete"]').on("click", function(e) {
       e.preventDefault();
@@ -300,8 +308,10 @@
     updateGunIndex(el, elGun, i);
     updateGunTargets(el, elGun);
     updateGunReferences(el, elGun);
+    bindCard(el, elGun);
     // Update
     updateLazy(el);
+    return i;
   };
 
   // Delete gun (input form)
@@ -339,9 +349,9 @@
       let elGunReferenceValue = $(this).val() || "spotter";
       $(elGunReferenceList).html('<option value="spotter">Spotter to Gun</option>');
       // Add reference points
-      let i = 0;
+      let i = 1;
       jQuery(el.artyOptions.referenceElements).each(function() {
-        let elGunReference = $('<option value="ref-point-'+i+'">Gun to Ref-Point '+(i+1)+'</option>');
+        let elGunReference = $('<option value="ref-point-'+i+'">Gun to Ref-Point '+i+'</option>');
         $(elGunReferenceList).append(elGunReference);
         i++;
       });
@@ -384,6 +394,28 @@
    *                       GENERAL FUNCTIONS                                  *
    ****************************************************************************/
 
+  let bindCard = function(el, elCard) {
+    $(elCard).find('[data-action="card-minimize"]').on("click", function(e) {
+      e.preventDefault();
+      minimizeCard(el, elCard);
+    });
+    $(elCard).find('[data-action="card-maximize"]').on("click", function(e) {
+      e.preventDefault();
+      maximizeCard(el, elCard);
+    });
+    maximizeCard(el, elCard);
+  };
+
+  let minimizeCard = function(el, elCard) {
+    $(elCard).find('[data-visible="maximized"]').hide();
+    $(elCard).find('[data-visible="minimized"]').show();
+  };
+
+  let maximizeCard = function(el, elCard) {
+    $(elCard).find('[data-visible="minimized"]').hide();
+    $(elCard).find('[data-visible="maximized"]').show();
+  };
+
   let getPosition = function(el, referenceId) {
     if (referenceId == "spotter") {
       return { x: 0, y: 0 };
@@ -391,7 +423,7 @@
       // To reference point
       let referenceMatch = referenceId.match(/^ref-point-([0-9]+)$/i);
       if (referenceMatch.length > 1) {
-        let referenceIndex = parseInt(referenceMatch[1]);
+        let referenceIndex = parseInt(referenceMatch[1]) - 1;
         if ((el.artyOptions.positions !== null) && (el.artyOptions.positions.references.length > referenceIndex)) {
           return el.artyOptions.positions.references[referenceIndex];
         }
@@ -412,7 +444,7 @@
     }, el.artyOptions.updateDelay);
   };
 
-  // GENERAL - Update values for all gun targets
+  // Update values for all gun targets
   let updateNow = function(el) {
     updatePositions(el);
     updateGunTargetValues(el);
@@ -482,7 +514,7 @@
     return el.artyOptions.positions.valid;
   };
 
-  // GENERAL - Update values for all gun targets
+  // Update values for all gun targets
   let updateGunTargetValues = function(el) {
     let gunIndex = 0;
     jQuery(el.artyOptions.gunElements).each(function() {
@@ -501,7 +533,11 @@
     });
   };
 
-  // VISUAL AID - Initialize visual aid
+  /****************************************************************************
+   *                     VISUAL AID FUNCTIONS                                 *
+   ****************************************************************************/
+
+  // Initialize visual aid
   let initVisualAid = function(el) {
     if (el.artyOptions.visualElement !== null) {
       return; // Already initialized
@@ -519,7 +555,7 @@
     }
   };
 
-  // VISUAL AID - Update graphics
+  // Update graphics
   let updateVisualAid = function(el) {
     if (el.artyOptions.visualElement === null) {
       return; // Canvas not present/found
@@ -655,6 +691,10 @@
     ctx.fill();
     ctx.stroke();
   };
+
+  /****************************************************************************
+   *                     JQUERY PLUGIN METHOD                                 *
+   ****************************************************************************/
 
   $.fn.arty = function(action, ...params) {
     if (typeof action == "string") {
