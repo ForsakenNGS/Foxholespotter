@@ -12,6 +12,10 @@
     visualTargetColor: '#F66',          // Color of the target marker
     visualGunColor: '#6F6',             // Color of the gun marker
     visualSpotterColor: '#66F',         // Color of the spotter marker
+    visualReferenceColor: '#FF6',       // Color of the reference point marker
+    referenceElements: [],
+    referenceListCss: ".reference-list",
+    referenceTemplate: null,
     targetElements: [],
     targetListCss: ".target-list",
     targetTemplate: null,
@@ -19,6 +23,7 @@
     gunListCss: ".gun-list",
     gunTemplate: null,
     gunTargetTemplate: null,
+    positions: null,
     updateDelay: 100,
     updateTimer: null,
     visualCss: ".visual-aid",
@@ -47,6 +52,7 @@
     addTarget(el);
     addGun(el);
     initVisualAid(el);
+    updateNow(el);
     $(window).resize(function() {
       updateLazy(el);
     });
@@ -79,7 +85,7 @@
     return {
       dist: dist, azim: azimAngle, polar: polarAngle,
       x: offsetX + dist * Math.cos(polarAngle),
-      y: offsetY + dist * Math.sin(polarAngle)
+      y: offsetY + dist * Math.sin(polarAngle) * -1
     };
   };
 
@@ -91,11 +97,11 @@
     var azimAngle = 0;
     if (dist > 0) {
       azimAngle = calcRadToDeg( Math.asin(Math.abs(dstX - srcX) / dist) );
-      if ((dstX < srcX) && (dstY >= srcY)) {
+      if ((dstX < srcX) && (dstY <= srcY)) {
         azimAngle = 360 - azimAngle;
-      } else if ((dstX < srcX) && (dstY < srcY)) {
+      } else if ((dstX < srcX) && (dstY > srcY)) {
         azimAngle = 180 + azimAngle;
-      } else if ((dstX >= srcX) && (dstY < srcY)) {
+      } else if ((dstX >= srcX) && (dstY > srcY)) {
         azimAngle = 180 - azimAngle;
       }
     }
@@ -167,6 +173,94 @@
   };
 
   /****************************************************************************
+   *                       REFERENCE FUNCTIONS                                *
+   ****************************************************************************/
+
+  // Add new reference (input form)
+  let addReference = function(el) {
+    let elReference = $(el.artyOptions.referenceTemplate);
+    $(el).find(el.artyOptions.referenceListCss).append(elReference);
+    el.artyOptions.referenceElements.push(elReference);
+    let i = el.artyOptions.referenceElements.length;
+    elReference.find('[data-input="reference-distance"]').on("change", function() {
+      updateLazy(el);
+    });
+    elReference.find('[data-input="reference-azimuth"]').on("change", function() {
+      let value = parseFloat($(this).val());
+      if (!isNaN(value)) {
+        if (value < 0) {
+          $(this).val(360 + value);
+        } else if (value > 360) {
+          $(this).val(value - 360);
+        }
+      }
+      updateLazy(el);
+    });
+    elReference.find('[data-action="reference-add"]').on("click", function(e) {
+      e.preventDefault();
+      addReference(el);
+    });
+    elReference.find('[data-action="reference-delete"]').on("click", function(e) {
+      e.preventDefault();
+      let index = $(this).closest("[data-arty-reference]").attr("data-arty-reference");
+      delReference(el, index);
+    });
+    updateReferenceIndex(el, elReference, i);
+    // Update
+    updateGunReferences(el);
+    updateReferenceRefeferences(el);
+    updateLazy(el);
+  };
+
+  // Delete reference (input form)
+  let delReference = function(el, i) {
+    // Update following references
+    for (let j = i; j < el.artyOptions.referenceElements.length; j++) {
+      updateReferenceIndex(el, $(el.artyOptions.referenceElements[j]), j);
+    }
+    // Remove reference
+    let elReferenceJs = el.artyOptions.referenceElements.splice(i-1, 1);
+    $(elReferenceJs[0]).remove();
+    // Update
+    updateGunReferences(el);
+    updateReferenceRefeferences(el);
+    updateLazy(el);
+  };
+
+  // Update index number (input form)
+  let updateReferenceIndex = function(el, elReference, i) {
+    elReference.attr("data-arty-reference", i).find(".reference-index").text(i);
+  };
+
+  // Update reference list (input form)
+  let updateReferenceRefeferences = function(el, elReference, index) {
+    if (typeof elReference == "undefined") {
+      let i = 0;
+      jQuery(el.artyOptions.referenceElements).each(function() {
+        updateReferenceRefeferences(el, this, i);
+        i++;
+      });
+      return;
+    }
+    elReference.find('[data-input="reference-reference"]').each(function() {
+      let elReferenceList = this;
+      let elReferenceValue = $(this).val() || "spotter";
+      $(elReferenceList).html('<option value="spotter">Spotter to Ref-Point '+(index+1)+'</option>');
+      // Add reference points
+      let i = 0;
+      jQuery(el.artyOptions.referenceElements).each(function() {
+        if (i < index) {
+          let elReference = $('<option value="ref-point-'+i+'">Ref-Point '+(index+1)+' to Ref-Point '+(i+1)+'</option>');
+          $(elReferenceList).append(elReference);
+        }
+        i++;
+      });
+      // Restore previous selection if possible
+      $(this).val(elReferenceValue)
+    });
+  };
+
+  /****************************************************************************
    *                          GUN FUNCTIONS                                   *
    ****************************************************************************/
 
@@ -194,6 +288,10 @@
       e.preventDefault();
       addGun(el);
     });
+    elGun.find('[data-action="gun-add-reference"]').on("click", function(e) {
+      e.preventDefault();
+      addReference(el);
+    });
     elGun.find('[data-action="gun-delete"]').on("click", function(e) {
       e.preventDefault();
       let index = $(this).closest("[data-arty-gun]").attr("data-arty-gun");
@@ -201,6 +299,7 @@
     });
     updateGunIndex(el, elGun, i);
     updateGunTargets(el, elGun);
+    updateGunReferences(el, elGun);
     // Update
     updateLazy(el);
   };
@@ -225,6 +324,33 @@
   // Update index number (input form)
   let updateGunIndex = function(el, elGun, i) {
     elGun.attr("data-arty-gun", i).find(".gun-index").text(i);
+  };
+
+  // Update reference list (input form)
+  let updateGunReferences = function(el, elGun) {
+    if (typeof elGun == "undefined") {
+      jQuery(el.artyOptions.gunElements).each(function() {
+        updateGunReferences(el, this);
+      });
+      return;
+    }
+    elGun.find('[data-input="gun-reference"]').each(function() {
+      let elGunReferenceList = this;
+      let elGunReferenceValue = $(this).val() || "spotter";
+      $(elGunReferenceList).html('<option value="spotter">Spotter to Gun</option>');
+      // Add reference points
+      let i = 0;
+      jQuery(el.artyOptions.referenceElements).each(function() {
+        let elGunReference = $('<option value="ref-point-'+i+'">Gun to Ref-Point '+(i+1)+'</option>');
+        $(elGunReferenceList).append(elGunReference);
+        i++;
+      });
+      // Restore previous selection if possible
+      $(this).val(elGunReferenceValue);
+      if ($(this).val() === null) {
+        $(this).val("spotter");
+      }
+    });
   };
 
   // Update target list (input form)
@@ -258,6 +384,22 @@
    *                       GENERAL FUNCTIONS                                  *
    ****************************************************************************/
 
+  let getPosition = function(el, referenceId) {
+    if (referenceId == "spotter") {
+      return { x: 0, y: 0 };
+    } else {
+      // To reference point
+      let referenceMatch = referenceId.match(/^ref-point-([0-9]+)$/i);
+      if (referenceMatch.length > 1) {
+        let referenceIndex = parseInt(referenceMatch[1]);
+        if ((el.artyOptions.positions !== null) && (el.artyOptions.positions.references.length > referenceIndex)) {
+          return el.artyOptions.positions.references[referenceIndex];
+        }
+      }
+      return { x: 0, y: 0 };
+    }
+  };
+
   // Update values and visuals after a short delay
   let updateLazy = function(el) {
     if (el.artyOptions.updateTimer !== null) {
@@ -272,39 +414,91 @@
 
   // GENERAL - Update values for all gun targets
   let updateNow = function(el) {
+    updatePositions(el);
     updateGunTargetValues(el);
     updateVisualAid(el);
   };
 
+  // Update positions of all markers
+  let updatePositions = function(el) {
+    el.artyOptions.positions = {
+      targets: [],
+      references: [],
+      guns: [],
+      valid: true
+    };
+    let i = 0;
+    // Target positions
+    i = 0;
+    jQuery(el.artyOptions.targetElements).each(function() {
+      let dist = parseFloat($(this).find('[data-input="target-distance"]').val() || 0);
+      let azimAngle = parseFloat($(this).find('[data-input="target-azimuth"]').val() || 0);
+      if ((dist !== "") && (azimAngle !== "")) {
+        el.artyOptions.positions.targets.push(calcAzimToCartesian(dist, azimAngle));
+      } else {
+        el.artyOptions.positions.targets.push({ x: 0, y: 0 });
+        el.artyOptions.positions.valid = false;
+      }
+      i++;
+    });
+    // Reference positions
+    i = 0;
+    jQuery(el.artyOptions.referenceElements).each(function() {
+      let referenceId = $(this).find('[data-input="reference-reference"]').val() || "spotter";
+      let referencePos = getPosition(el, referenceId);
+      let dist = parseFloat($(this).find('[data-input="reference-distance"]').val() || 0);
+      let azimAngle = parseFloat($(this).find('[data-input="reference-azimuth"]').val() || 0);
+      if ((dist !== "") && (azimAngle !== "")) {
+        if (referenceId != "spotter") {
+          // Reverse direction if gun to reference point
+          azimAngle = (azimAngle + 180) % 360;
+        }
+        el.artyOptions.positions.references.push(calcAzimToCartesian(dist, azimAngle, referencePos.x, referencePos.y));
+      } else {
+        el.artyOptions.positions.references.push({ x: 0, y: 0 });
+        el.artyOptions.positions.valid = false;
+      }
+      i++;
+    });
+    // Gun positions
+    i = 0;
+    jQuery(el.artyOptions.gunElements).each(function() {
+      let referenceId = $(this).find('[data-input="gun-reference"]').val() || "spotter";
+      let referencePos = getPosition(el, referenceId);
+      let dist = parseFloat($(this).find('[data-input="gun-distance"]').val() || 0);
+      let azimAngle = parseFloat($(this).find('[data-input="gun-azimuth"]').val() || 0);
+      if ((dist !== "") && (azimAngle !== "")) {
+        if (referenceId != "spotter") {
+          // Reverse direction if gun to reference point
+          azimAngle = (azimAngle + 180) % 360;
+        }
+        el.artyOptions.positions.guns.push(calcAzimToCartesian(dist, azimAngle, referencePos.x, referencePos.y));
+      } else {
+        el.artyOptions.positions.guns.push({ x: 0, y: 0 });
+        el.artyOptions.positions.valid = false;
+      }
+      i++;
+    });
+    return el.artyOptions.positions.valid;
+  };
+
   // GENERAL - Update values for all gun targets
   let updateGunTargetValues = function(el) {
+    let gunIndex = 0;
     jQuery(el.artyOptions.gunElements).each(function() {
       let elGunJs = this;
-      let gunDist = $(this).find('[data-input="gun-distance"]').val() || 0;
-      let gunAngleAzim = $(this).find('[data-input="gun-azimuth"]').val() || 0;
-      let gunPosition = null;
-      if ((gunDist !== "") && (gunAngleAzim !== "")) {
-        gunPosition = calcAzimToCartesian(gunDist, gunAngleAzim);
-      }
-      let i = 0;
+      let gunPosition = el.artyOptions.positions.guns[gunIndex];
+      let targetIndex = 0;
       jQuery(el.artyOptions.targetElements).each(function() {
-        let targetDist = $(this).find('[data-input="target-distance"]').val() || 0;
-        let targetAngleAzim = $(this).find('[data-input="target-azimuth"]').val() || 0;
-        let targetPosition = null;
-        if ((targetDist !== "") && (targetAngleAzim !== "")) {
-          targetPosition = calcAzimToCartesian(targetDist, targetAngleAzim);
-        }
-        let targetText = "";
-        if ((gunPosition !== null) && (targetPosition !== null)) {
-          let gunTargetPolar = calcCartesianToAzim(targetPosition.x, targetPosition.y, gunPosition.x, gunPosition.y);
-          targetText = "Dist "+(Math.floor(gunTargetPolar.dist * 10) / 10)+"m "+
+        let targetPosition = el.artyOptions.positions.targets[targetIndex];
+        let gunTargetPolar = calcCartesianToAzim(targetPosition.x, targetPosition.y, gunPosition.x, gunPosition.y);
+        let targetText = "Dist "+(Math.floor(gunTargetPolar.dist * 10) / 10)+"m "+
             "Azim "+(Math.floor(gunTargetPolar.azim * 10) / 10)+"deg";
-        }
-        $(elGunJs).find('[data-input="gun-target"][data-index="'+(i+1)+'"]').val(targetText);
-        i++;
+        $(elGunJs).find('[data-input="gun-target"][data-index="'+(targetIndex+1)+'"]').val(targetText);
+        targetIndex++;
       });
+      gunIndex++;
     });
-
   };
 
   // VISUAL AID - Initialize visual aid
@@ -322,7 +516,6 @@
         el.artyOptions.visualElement.append("<canvas style='width: 100%; height: calc(100vh - 50px);'></canvas>");
         el.artyOptions.visualElement = el.artyOptions.visualElement.find("canvas")[0];
       }
-      updateVisualAid(el);
     }
   };
 
@@ -337,61 +530,43 @@
     el.artyOptions.visualElement.height = h;
     let ctx = el.artyOptions.visualElement.getContext("2d");
     let i;
-    // Target positions
-    let targetPositions = [];
-    i = 0;
-    jQuery(el.artyOptions.targetElements).each(function() {
-      let targetDist = $(this).find('[data-input="target-distance"]').val() || 0;
-      let targetAngleAzim = $(this).find('[data-input="target-azimuth"]').val() || 0;
-      if ((targetDist !== "") && (targetAngleAzim !== "")) {
-        targetPositions.push(calcAzimToCartesian(targetDist, targetAngleAzim));
-      }
-      i++;
-    });
-    // Gun positions
-    let gunPositions = [];
-    i = 0;
-    jQuery(el.artyOptions.gunElements).each(function() {
-      let gunDist = $(this).find('[data-input="gun-distance"]').val() || 0;
-      let gunAngleAzim = $(this).find('[data-input="gun-azimuth"]').val() || 0;
-      if ((gunDist !== "") && (gunAngleAzim !== "")) {
-        gunPositions.push(calcAzimToCartesian(gunDist, gunAngleAzim));
-      }
-      i++;
-    });
     // Calculate optimal scale
     let margin = el.artyOptions.visualMargin;
     let scale = 1.0;
     let offsetX = w * 0.5;
     let offsetY = h * 0.5;
-    if ((targetPositions.length > 0) || (gunPositions.length > 0)) {
-      let minX = 0, minY = 0, maxX = 0, maxY = 0;
-      for (i = 0; i < targetPositions.length; i++) {
-        minX = Math.min(minX, targetPositions[i].x);
-        minY = Math.min(minY, targetPositions[i].y);
-        maxX = Math.max(maxX, targetPositions[i].x);
-        maxY = Math.max(maxY, targetPositions[i].y);
-      }
-      for (i = 0; i < gunPositions.length; i++) {
-        minX = Math.min(minX, gunPositions[i].x);
-        minY = Math.min(minY, gunPositions[i].y);
-        maxX = Math.max(maxX, gunPositions[i].x);
-        maxY = Math.max(maxY, gunPositions[i].y);
-      }
-      minX -= margin;
-      minY -= margin;
-      maxX += margin;
-      maxY += margin;
-      let sizeX = maxX - minX, sizeY = maxY - minY;
-      let scaleX = w / sizeX, scaleY = h / sizeY;
-      scale = Math.min(scaleX, scaleY);
-      offsetX = minX * -1;
-      offsetY = minY * -1;
-      if (scaleX > scaleY) {
-        offsetX += (w / scale - sizeX) / 2;
-      } else {
-        offsetY += (h / scale - sizeY) / 2;
-      }
+    let minX = 0, minY = 0, maxX = 0, maxY = 0;
+    for (i = 0; i < el.artyOptions.positions.targets.length; i++) {
+      minX = Math.min(minX, el.artyOptions.positions.targets[i].x);
+      minY = Math.min(minY, el.artyOptions.positions.targets[i].y);
+      maxX = Math.max(maxX, el.artyOptions.positions.targets[i].x);
+      maxY = Math.max(maxY, el.artyOptions.positions.targets[i].y);
+    }
+    for (i = 0; i < el.artyOptions.positions.references.length; i++) {
+      minX = Math.min(minX, el.artyOptions.positions.references[i].x);
+      minY = Math.min(minY, el.artyOptions.positions.references[i].y);
+      maxX = Math.max(maxX, el.artyOptions.positions.references[i].x);
+      maxY = Math.max(maxY, el.artyOptions.positions.references[i].y);
+    }
+    for (i = 0; i < el.artyOptions.positions.guns.length; i++) {
+      minX = Math.min(minX, el.artyOptions.positions.guns[i].x);
+      minY = Math.min(minY, el.artyOptions.positions.guns[i].y);
+      maxX = Math.max(maxX, el.artyOptions.positions.guns[i].x);
+      maxY = Math.max(maxY, el.artyOptions.positions.guns[i].y);
+    }
+    minX -= margin;
+    minY -= margin;
+    maxX += margin;
+    maxY += margin;
+    let sizeX = maxX - minX, sizeY = maxY - minY;
+    let scaleX = w / sizeX, scaleY = h / sizeY;
+    scale = Math.min(scaleX, scaleY);
+    offsetX = minX * -1;
+    offsetY = minY * -1;
+    if (scaleX > scaleY) {
+      offsetX += (w / scale - sizeX) / 2;
+    } else {
+      offsetY += (h / scale - sizeY) / 2;
     }
     let localX, localY;
     let gridSize = el.artyOptions.visualGridSize;
@@ -423,13 +598,29 @@
     // Set font
     ctx.font = (markerSize * 1.75 * scale)+'px serif';
     ctx.textBaseline = 'middle';
+    // Draw reference points
+    ctx.lineWidth = el.artyOptions.visualOutlineWidth;
+    ctx.strokeStyle = el.artyOptions.visualOutlineColor;
+    for (i = 0; i < el.artyOptions.positions.references.length; i++) {
+      let markerText = i+1;
+      localX = (el.artyOptions.positions.references[i].x + offsetX) * scale;
+      localY = (el.artyOptions.positions.references[i].y + offsetY) * scale;
+      ctx.fillStyle = el.artyOptions.visualReferenceColor;
+      ctx.beginPath();
+      ctx.arc(localX, localY, markerSize * scale, 0, 2 * Math.PI, false);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = el.artyOptions.visualTextColor;
+      let textMetric = ctx.measureText(markerText);
+      ctx.fillText(markerText, localX - textMetric.width / 2, localY);
+    }
     // Draw targets
     ctx.lineWidth = el.artyOptions.visualOutlineWidth;
     ctx.strokeStyle = el.artyOptions.visualOutlineColor;
-    for (i = 0; i < targetPositions.length; i++) {
+    for (i = 0; i < el.artyOptions.positions.targets.length; i++) {
       let markerText = i+1;
-      localX = (targetPositions[i].x + offsetX) * scale;
-      localY = (targetPositions[i].y + offsetY) * scale;
+      localX = (el.artyOptions.positions.targets[i].x + offsetX) * scale;
+      localY = (el.artyOptions.positions.targets[i].y + offsetY) * scale;
       ctx.fillStyle = el.artyOptions.visualTargetColor;
       ctx.beginPath();
       ctx.arc(localX, localY, markerSize * scale, 0, 2 * Math.PI, false);
@@ -441,10 +632,10 @@
     }
     // Draw guns
     ctx.strokeStyle = el.artyOptions.visualOutlineColor;
-    for (i = 0; i < gunPositions.length; i++) {
+    for (i = 0; i < el.artyOptions.positions.guns.length; i++) {
       let markerText = i+1;
-      localX = (gunPositions[i].x + offsetX) * scale;
-      localY = (gunPositions[i].y + offsetY) * scale;
+      localX = (el.artyOptions.positions.guns[i].x + offsetX) * scale;
+      localY = (el.artyOptions.positions.guns[i].y + offsetY) * scale;
       ctx.fillStyle = el.artyOptions.visualGunColor;
       ctx.beginPath();
       ctx.arc(localX, localY, markerSize * scale, 0, 2 * Math.PI, false);

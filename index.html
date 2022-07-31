@@ -13,9 +13,10 @@
       <div class="row">
         <div class="col-md-4" style="max-height: calc(100vh - 2rem); overflow-y: auto;">
           <div class="target-list"></div>
+          <div class="reference-list"></div>
           <div class="gun-list"></div>
         </div>
-        <div class="col-md-8 ">
+        <div class="col-md-8">
           <canvas class="visual-aid" style='width: 100%; height: calc(100vh - 2rem);'></div>
         </div>
       </div>
@@ -42,13 +43,44 @@
           <div class="input-group input-group-sm mb-1">
             <span class="input-group-text col-md-3">Distance</span>
             <input type="number" class="form-control" data-input="target-distance"
-              min="0" max="300" step="1" placeholder="Target distance (from spotter)" value="100">
+              min="0" max="300" step="1" placeholder="Target distance (from spotter)" value="">
             <span class="input-group-text col-md-2">Meters</span>
           </div>
           <div class="input-group input-group-sm">
             <span class="input-group-text col-md-2">Azimuth</span>
             <input type="number" class="form-control" data-input="target-azimuth"
               min="-1" max="361" step="1" placeholder="Target azimuth (from spotter)" value="0">
+            <span class="input-group-text col-md-2">Degrees</span>
+          </div>
+        </div>
+      </div>
+    </script>
+    <script type="text/html" id="template-reference">
+      <div class="card mb-3">
+        <h5 class="card-header">
+          Ref-Point <span class="reference-index">?</span>
+          <a href="#delete" class="float-end text-danger" data-action="reference-delete" title="Remove reference point">
+            <i class="bi bi-trash3-fill"></i>
+          </a>
+          <a href="#add" class="float-end text-success me-2" data-action="reference-add" title="Add reference point">
+            <i class="bi bi-plus-circle"></i>
+          </a>
+        </h5>
+        <div class="card-body">
+          <div class="input-group input-group-sm mb-1">
+            <span class="input-group-text col-md-3">Reference</span>
+            <select class="form-control" data-input="reference-reference"></select>
+          </div>
+          <div class="input-group input-group-sm mb-1">
+            <span class="input-group-text col-md-3">Distance</span>
+            <input type="number" class="form-control" data-input="reference-distance"
+              min="0" max="300" step="1" placeholder="Reference point distance (from spotter)" value="">
+            <span class="input-group-text col-md-2">Meters</span>
+          </div>
+          <div class="input-group input-group-sm">
+            <span class="input-group-text col-md-2">Azimuth</span>
+            <input type="number" class="form-control" data-input="reference-azimuth"
+              min="-1" max="361" step="1" placeholder="Reference point azimuth (from spotter)" value="0">
             <span class="input-group-text col-md-2">Degrees</span>
           </div>
         </div>
@@ -64,18 +96,25 @@
           <a href="#add" class="float-end text-success me-2" data-action="gun-add" title="Add gun">
             <i class="bi bi-plus-circle"></i>
           </a>
+          <a href="#add" class="float-end text-success me-2" data-action="gun-add-reference" title="Add reference point">
+            <i class="bi bi-node-plus"></i>
+          </a>
         </h5>
         <div class="card-body">
           <div class="input-group input-group-sm mb-1">
+            <span class="input-group-text col-md-3">Reference</span>
+            <select class="form-control" data-input="gun-reference"></select>
+          </div>
+          <div class="input-group input-group-sm mb-1">
             <span class="input-group-text col-md-3">Distance</span>
             <input type="number" class="form-control" data-input="gun-distance"
-              min="0" max="300" step="1" placeholder="Gun distance (from spotter)" value="100">
+              min="0" max="300" step="1" placeholder="Gun distance (from spotter)" value="">
             <span class="input-group-text col-md-2">Meters</span>
           </div>
           <div class="input-group input-group-sm">
             <span class="input-group-text col-md-3">Azimuth</span>
             <input type="number" class="form-control" data-input="gun-azimuth"
-              min="-1" max="361" step="1" placeholder="Gun azimuth (from spotter)" value="90">
+              min="-1" max="361" step="1" placeholder="Gun azimuth (from spotter)" value="0">
             <span class="input-group-text col-md-2">Degrees</span>
           </div>
           <div data-list="targets">
@@ -98,6 +137,7 @@
     <script type="text/javascript">
       jQuery("#arty").arty({
         targetTemplate: jQuery("#template-target").html(),
+        referenceTemplate: jQuery("#template-reference").html(),
         gunTemplate: jQuery("#template-gun").html(),
         gunTargetTemplate: jQuery("#template-gun-target").html()
       });
