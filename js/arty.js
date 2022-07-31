@@ -24,6 +24,9 @@
     gunTemplate: null,
     gunTargetTemplate: null,
     positions: null,
+    presetId: null,
+    presetName: null,
+    presetNextId: 1,
     updateDelay: 100,
     updateTimer: null,
     visualCss: ".visual-aid",
@@ -52,7 +55,20 @@
     addTarget(el);
     addGun(el);
     initVisualAid(el);
+    loadPresets(el);
     updateNow(el);
+    $(el).find('[data-action="reset-all"]').on("click", function(e) {
+      e.preventDefault();
+      resetAll(el);
+    });
+    $(el).find('[data-action="reset-targets"]').on("click", function(e) {
+      e.preventDefault();
+      resetTargets(el);
+    });
+    $(el).find('[data-action="preset-save"]').on("click", function(e) {
+      e.preventDefault();
+      savePreset(el);
+    });
     $(window).resize(function() {
       updateLazy(el);
     });
@@ -134,6 +150,12 @@
       }
       updateLazy(el);
     });
+    elTarget.find('[data-action="azimuth-swap"]').on("click", function(e) {
+      e.preventDefault();
+      let input = $(this).closest(".input-group").find("input");
+      input.val( (parseInt(input.val() || 0) + 180) % 360 );
+      updateLazy(el);
+    });
     elTarget.find('[data-action="target-add"]').on("click", function(e) {
       e.preventDefault();
       addTarget(el);
@@ -196,6 +218,12 @@
           $(this).val(value - 360);
         }
       }
+      updateLazy(el);
+    });
+    elReference.find('[data-action="azimuth-swap"]').on("click", function(e) {
+      e.preventDefault();
+      let input = $(this).closest(".input-group").find("input");
+      input.val( (parseInt(input.val() || 0) + 180) % 360 );
       updateLazy(el);
     });
     elReference.find('[data-action="reference-add"]').on("click", function(e) {
@@ -292,6 +320,12 @@
           $(this).val(value - 360);
         }
       }
+      updateLazy(el);
+    });
+    elGun.find('[data-action="azimuth-swap"]').on("click", function(e) {
+      e.preventDefault();
+      let input = $(this).closest(".input-group").find("input");
+      input.val( (parseInt(input.val() || 0) + 180) % 360 );
       updateLazy(el);
     });
     elGun.find('[data-action="gun-add"]').on("click", function(e) {
@@ -433,6 +467,226 @@
       }
       return { x: 0, y: 0 };
     }
+  };
+
+  let getPreset = function(el, id) {
+    return JSON.parse(localStorage.getItem(id));
+  };
+
+  let getPresets = function(el) {
+    let presets = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      let presetId = localStorage.key(i);
+      let presetMatch = presetId.match(/^preset-([0-9]+)$/i);
+      if (presetMatch.length > 1) {
+        let presetIndex = parseInt(presetMatch[1]);
+        el.artyOptions.presetNextId = Math.max(el.artyOptions.presetNextId, presetIndex + 1);
+        presets.push(presetId);
+      }
+    }
+    return presets;
+  };
+
+  let loadPreset = function(el, presetId) {
+    let presetData = getPreset(el, presetId);
+    importJson(el, presetData);
+    el.artyOptions.presetId = presetId;
+    el.artyOptions.presetName = presetData.name;
+    loadPresets(el);
+  };
+
+  let loadPresets = function(el) {
+    let presets = getPresets(el);
+    $('[data-list="presets"]').each(function() {
+      // Add presets to dropdown
+      $(this).html("");
+      for (let i = 0; i < presets.length; i++) {
+        let presetData = getPreset(el, presets[i]);
+        let classActive = (el.artyOptions.presetId == presets[i] ? " active" : "");
+        $(this).append('<li><a class="dropdown-item'+classActive+'" data-action="preset-load" data-preset="'+presets[i]+'"></a></li>');
+        $(this).find('[data-preset="'+presets[i]+'"]').text(presetData.name);
+      }
+      // Add extra options if a preset is loaded
+      if (el.artyOptions.presetId !== null) {
+        $(this).append('<li><hr class="dropdown-divider"></li>');
+        $(this).append('<li><a class="dropdown-item text-danger" data-action="preset-delete" data-preset="'+el.artyOptions.presetId+'">Delete active preset</a></li>');
+        $(this).append('<li><a class="dropdown-item text-success" data-action="preset-save-as">Save preset as...</a></li>');
+      }
+      // Bind actions
+      $(this).find('[data-action="preset-load"]').on("click", function(e) {
+        e.preventDefault();
+        let presetId = $(this).attr("data-preset");
+        loadPreset(el, presetId);
+      });
+      $(this).find('[data-action="preset-delete"]').on("click", function(e) {
+        e.preventDefault();
+        let presetId = $(this).attr("data-preset");
+        deletePreset(el, presetId);
+      });
+      $(this).find('[data-action="preset-save-as"]').on("click", function(e) {
+        e.preventDefault();
+        savePresetAs(el);
+      });
+      if (presets.length == 0) {
+        $(this).append('<span class="dropdown-item text-muted">No presets present</span>');
+      }
+    });
+  };
+
+  let deletePreset = function(el, presetId) {
+    localStorage.removeItem(presetId);
+    if (el.artyOptions.presetId === presetId) {
+      el.artyOptions.presetName = null;
+      el.artyOptions.presetId = null;
+    }
+    loadPresets(el);
+  };
+
+  let savePreset = function(el) {
+    if (el.artyOptions.presetId === null) {
+      return savePresetAs(el);
+    }
+    let presetData = exportJson(el, el.artyOptions.presetName);
+    localStorage.setItem(el.artyOptions.presetId, JSON.stringify(presetData));
+    loadPresets(el);
+  };
+
+  let savePresetAs = function(el) {
+    let presetName = prompt("Please enter preset name");
+    if (presetName === null) {
+      return; // Cancelled
+    }
+    el.artyOptions.presetName = presetName;
+    el.artyOptions.presetId = "preset-"+el.artyOptions.presetNextId;
+    el.artyOptions.presetNextId++;
+    savePreset(el)
+  };
+
+  // Export current settings as json object
+  let exportJson = function(el, name) {
+    let result = {
+      name: name,
+      targets: [],
+      references: [],
+      guns: []
+    };
+    // Target positions
+    jQuery(el.artyOptions.targetElements).each(function() {
+      let dist = parseFloat($(this).find('[data-input="target-distance"]').val() || 0);
+      let azimAngle = parseFloat($(this).find('[data-input="target-azimuth"]').val() || 0);
+      result.targets.push({ dist: dist, angle: azimAngle });
+    });
+    // Reference positions
+    jQuery(el.artyOptions.referenceElements).each(function() {
+      let referenceId = $(this).find('[data-input="reference-reference"]').val() || "spotter";
+      let dist = parseFloat($(this).find('[data-input="reference-distance"]').val() || 0);
+      let azimAngle = parseFloat($(this).find('[data-input="reference-azimuth"]').val() || 0);
+      result.references.push({ ref: referenceId, dist: dist, angle: azimAngle });
+    });
+    // Gun positions
+    jQuery(el.artyOptions.gunElements).each(function() {
+      let referenceId = $(this).find('[data-input="gun-reference"]').val() || "spotter";
+      let dist = parseFloat($(this).find('[data-input="gun-distance"]').val() || 0);
+      let azimAngle = parseFloat($(this).find('[data-input="gun-azimuth"]').val() || 0);
+      let correctionX = parseFloat($(this).find('[data-input="gun-correction-x"]').val() || 0);
+      let correctionY = parseFloat($(this).find('[data-input="gun-correction-y"]').val() || 0);
+      result.guns.push({
+        ref: referenceId, dist: dist, angle: azimAngle,
+        correctionX: correctionX, correctionY: correctionY
+      });
+    });
+    return result;
+  };
+
+  // Import settings from a json object
+  let importJson = function(el, data) {
+    // Clear all inputs
+    resetAll(el);
+    // Add the correct number of targets/ref-points/guns
+    while (el.artyOptions.targetElements.length < data.targets.length) {
+      addTarget(el);
+    }
+    while (el.artyOptions.referenceElements.length < data.references.length) {
+      addReference(el);
+    }
+    while (el.artyOptions.gunElements.length < data.guns.length) {
+      addGun(el);
+    }
+    // Load targets
+    for (let i = 0; i < el.artyOptions.targetElements.length; i++) {
+      let elTarget = el.artyOptions.targetElements[i];
+      let targetData = data.targets[i];
+      $(elTarget).find('[data-input="target-distance"]').val(targetData.dist);
+      $(elTarget).find('[data-input="target-azimuth"]').val(targetData.angle);
+    }
+    // Load references
+    for (let i = 0; i < el.artyOptions.referenceElements.length; i++) {
+      let elReference = el.artyOptions.referenceElements[i];
+      let referenceData = data.references[i];
+      $(elReference).find('[data-input="reference-reference"]').val(referenceData.ref);
+      $(elReference).find('[data-input="reference-distance"]').val(referenceData.dist);
+      $(elReference).find('[data-input="reference-azimuth"]').val(referenceData.angle);
+    }
+    // Load guns
+    for (let i = 0; i < el.artyOptions.gunElements.length; i++) {
+      let elGun = el.artyOptions.gunElements[i];
+      let gunData = data.guns[i];
+      $(elGun).find('[data-input="gun-reference"]').val(gunData.ref);
+      $(elGun).find('[data-input="gun-distance"]').val(gunData.dist);
+      $(elGun).find('[data-input="gun-azimuth"]').val(gunData.angle);
+      $(elGun).find('[data-input="gun-correction-x"]').val(gunData.correctionX);
+      $(elGun).find('[data-input="gun-correction-y"]').val(gunData.correctionY);
+    }
+  };
+
+  // Reset the inputs for the given target
+  let resetTarget = function(el, elTarget) {
+    $(elTarget).find('[data-input="target-distance"]').val("");
+    $(elTarget).find('[data-input="target-azimuth"]').val(0);
+    updateLazy(el);
+  };
+
+  // Reset the inputs for the given gun
+  let resetGun = function(el, elGun) {
+    $(elGun).find('[data-input="gun-reference"]').val("spotter");
+    $(elGun).find('[data-input="gun-distance"]').val("");
+    $(elGun).find('[data-input="gun-azimuth"]').val(0);
+    $(elGun).find('[data-input="gun-correction-x"]').val("");
+    $(elGun).find('[data-input="gun-correction-y"]').val("");
+    updateLazy(el);
+  };
+
+  // Reset all targets
+  let resetTargets = function(el) {
+    for (let i = el.artyOptions.targetElements.length - 1; i > 0; i--) {
+      delTarget(el, i+1);
+    }
+    resetTarget(el, el.artyOptions.targetElements[0]);
+  };
+
+  // Reset all references
+  let resetReferences = function(el) {
+    for (let i = el.artyOptions.referenceElements.length - 1; i >= 0; i--) {
+      delReference(el, i+1);
+    }
+    updateLazy(el);
+  };
+
+  // Reset all guns
+  let resetGuns = function(el) {
+    for (let i = el.artyOptions.gunElements.length - 1; i > 0; i--) {
+      delGun(el, i+1);
+    }
+    resetGun(el, el.artyOptions.gunElements[0]);
+  };
+
+  // Reset all inputs
+  let resetAll = function(el) {
+    el.artyOptions.presetId = null;
+    resetTargets(el);
+    resetReferences(el);
+    resetGuns(el);
+    loadPresets(el);
   };
 
   // Update values and visuals after a short delay
@@ -718,6 +972,7 @@
    ****************************************************************************/
 
   $.fn.arty = function(action, ...params) {
+    let result = this;
     if (typeof action == "string") {
       $(this).each(function() {
         switch (action) {
@@ -739,6 +994,14 @@
           case "removeGun":
             delGun(this, ...params);
             break;
+          case "export":
+          case "exportJson":
+            result = exportJson(this, ...params);
+            break;
+          case "import":
+          case "importJson":
+            importJson(this, ...params);
+            break;
           case "update":
             updateNow(this);
             break;
@@ -750,7 +1013,7 @@
     } else {
       init(this, action);
     }
-    return this;
+    return result;
   };
 
 })(jQuery);

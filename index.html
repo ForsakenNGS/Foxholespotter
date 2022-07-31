@@ -17,7 +17,19 @@
           <div class="gun-list"></div>
         </div>
         <div class="col-md-8">
-          <canvas class="visual-aid" style='width: 100%; height: calc(100vh - 2rem);'></div>
+          <div class="toolbar text-end mb-2">
+            <a href="https://github.com/ForsakenNGS/foxhole-spotter" target="_blank" class="btn btn-outline-secondary">Help / Issues</a>
+            <button type="button" data-action="reset-all" class="btn btn-outline-danger">Reset all values</button>
+            <button type="button" data-action="reset-targets" class="btn btn-outline-danger">Reset targets</button>
+            <div class="btn-group">
+              <button type="button" class="btn btn-outline-success" data-action="preset-save">Save preset</button>
+              <button type="button" class="btn btn-outline-success dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                <span class="visually-hidden">Toggle Dropdown</span>
+              </button>
+              <ul class="dropdown-menu" data-list="presets"></ul>
+            </div>
+          </div>
+          <canvas class="visual-aid" style='width: 100%; height: calc(100vh - 2.5rem - 38px);'></div>
         </div>
       </div>
 
@@ -53,9 +65,12 @@
             <span class="input-group-text col-md-2">Meters</span>
           </div>
           <div class="input-group input-group-sm">
-            <span class="input-group-text col-md-2">Azimuth</span>
+            <span class="input-group-text col-md-3">Azimuth</span>
             <input type="number" class="form-control" data-input="target-azimuth"
               min="-1" max="361" step="1" placeholder="Target azimuth (from spotter)" value="0">
+            <button type="button" class="btn btn-outline-primary" data-action="azimuth-swap" title="Backcourse / swap direction">
+              <i class="bi bi-arrow-left-right"></i>
+            </button>
             <span class="input-group-text col-md-2">Degrees</span>
           </div>
         </div>
@@ -93,6 +108,9 @@
             <span class="input-group-text col-md-2">Azimuth</span>
             <input type="number" class="form-control" data-input="reference-azimuth"
               min="-1" max="361" step="1" placeholder="Reference point azimuth (from spotter)" value="0">
+            <button type="button" class="btn btn-outline-primary" data-action="azimuth-swap" title="Backcourse / swap direction">
+              <i class="bi bi-arrow-left-right"></i>
+            </button>
             <span class="input-group-text col-md-2">Degrees</span>
           </div>
         </div>
@@ -133,18 +151,21 @@
             <span class="input-group-text col-md-3">Azimuth</span>
             <input type="number" class="form-control" data-input="gun-azimuth"
               min="-1" max="361" step="1" placeholder="Gun azimuth (from spotter)" value="0">
+            <button type="button" class="btn btn-outline-primary" data-action="azimuth-swap" title="Backcourse / swap direction">
+              <i class="bi bi-arrow-left-right"></i>
+            </button>
             <span class="input-group-text col-md-2">Degrees</span>
           </div>
           <div class="input-group input-group-sm mb-1">
             <span class="input-group-text col-md-3">Correction (E/W)</span>
             <input type="number" class="form-control" data-input="gun-correction-x"
-              step="1" placeholder="Positive = East, Negative = West" value="0">
+              step="1" placeholder="Positive = East, Negative = West" value="">
             <span class="input-group-text col-md-2">Meters</span>
           </div>
           <div class="input-group input-group-sm mb-1">
             <span class="input-group-text col-md-3">Correction (N/S)</span>
             <input type="number" class="form-control" data-input="gun-correction-y"
-              step="1" placeholder="Positive = North, Negative = South" value="0">
+              step="1" placeholder="Positive = North, Negative = South" value="">
             <span class="input-group-text col-md-2">Meters</span>
           </div>
           <div data-list="targets">
