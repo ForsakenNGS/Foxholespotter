@@ -129,11 +129,23 @@
               min="0" max="300" step="1" placeholder="Gun distance (from spotter)" value="">
             <span class="input-group-text col-md-2">Meters</span>
           </div>
-          <div class="input-group input-group-sm" data-visible="maximized">
+          <div class="input-group input-group-sm mb-1" data-visible="maximized">
             <span class="input-group-text col-md-3">Azimuth</span>
             <input type="number" class="form-control" data-input="gun-azimuth"
               min="-1" max="361" step="1" placeholder="Gun azimuth (from spotter)" value="0">
             <span class="input-group-text col-md-2">Degrees</span>
+          </div>
+          <div class="input-group input-group-sm mb-1">
+            <span class="input-group-text col-md-3">Correction (E/W)</span>
+            <input type="number" class="form-control" data-input="gun-correction-x"
+              step="1" placeholder="Positive = East, Negative = West" value="0">
+            <span class="input-group-text col-md-2">Meters</span>
+          </div>
+          <div class="input-group input-group-sm mb-1">
+            <span class="input-group-text col-md-3">Correction (N/S)</span>
+            <input type="number" class="form-control" data-input="gun-correction-y"
+              step="1" placeholder="Positive = North, Negative = South" value="0">
+            <span class="input-group-text col-md-2">Meters</span>
           </div>
           <div data-list="targets">
 
@@ -142,7 +154,7 @@
       </div>
     </script>
     <script type="text/html" id="template-gun-target">
-      <div class="input-group input-group-sm mt-1">
+      <div class="input-group input-group-sm mb-1">
         <span class="input-group-text col-md-4">Target <span class="target-index">?</span></span>
         <input type="text" class="form-control" data-input="gun-target" data-index="0" readonly>
         <button type="button" class="btn btn-outline-primary" data-action="gun-target-copy">

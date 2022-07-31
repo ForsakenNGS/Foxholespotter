@@ -280,6 +280,9 @@
     elGun.find('[data-input="gun-distance"]').on("change", function() {
       updateLazy(el);
     });
+    elGun.find('[data-input="gun-correction-x"],[data-input="gun-correction-y"]').on("change", function() {
+      updateLazy(el);
+    });
     elGun.find('[data-input="gun-azimuth"]').on("change", function() {
       let value = parseFloat($(this).val());
       if (!isNaN(value)) {
@@ -520,10 +523,18 @@
     jQuery(el.artyOptions.gunElements).each(function() {
       let elGunJs = this;
       let gunPosition = el.artyOptions.positions.guns[gunIndex];
+      gunPosition.aimTargets = [];
+      let correctionX = parseFloat($(this).find('[data-input="gun-correction-x"]').val() || 0);
+      let correctionY = parseFloat($(this).find('[data-input="gun-correction-y"]').val() || 0);
       let targetIndex = 0;
       jQuery(el.artyOptions.targetElements).each(function() {
         let targetPosition = el.artyOptions.positions.targets[targetIndex];
-        let gunTargetPolar = calcCartesianToAzim(targetPosition.x, targetPosition.y, gunPosition.x, gunPosition.y);
+        let aimPosition = {
+          x: targetPosition.x + correctionX,
+          y: targetPosition.y - correctionY
+        };
+        gunPosition.aimTargets.push(aimPosition);
+        let gunTargetPolar = calcCartesianToAzim(aimPosition.x, aimPosition.y, gunPosition.x, gunPosition.y);
         let targetText = "Dist "+(Math.floor(gunTargetPolar.dist * 10) / 10)+"m "+
             "Azim "+(Math.floor(gunTargetPolar.azim * 10) / 10)+"deg";
         $(elGunJs).find('[data-input="gun-target"][data-index="'+(targetIndex+1)+'"]').val(targetText);
@@ -667,11 +678,21 @@
       ctx.fillText(markerText, localX - textMetric.width / 2, localY);
     }
     // Draw guns
-    ctx.strokeStyle = el.artyOptions.visualOutlineColor;
     for (i = 0; i < el.artyOptions.positions.guns.length; i++) {
       let markerText = i+1;
       localX = (el.artyOptions.positions.guns[i].x + offsetX) * scale;
       localY = (el.artyOptions.positions.guns[i].y + offsetY) * scale;
+      // Draw aim lines
+      ctx.strokeStyle = el.artyOptions.visualGunColor;
+      for (let j = 0; j < el.artyOptions.positions.guns[i].aimTargets.length; j++) {
+        let aimTarget = el.artyOptions.positions.guns[i].aimTargets[j];
+        ctx.beginPath();
+        ctx.moveTo(localX, localY);
+        ctx.lineTo((aimTarget.x + offsetX) * scale, (aimTarget.y + offsetY) * scale);
+        ctx.stroke();
+      }
+      // Draw marker
+      ctx.strokeStyle = el.artyOptions.visualOutlineColor;
       ctx.fillStyle = el.artyOptions.visualGunColor;
       ctx.beginPath();
       ctx.arc(localX, localY, markerSize * scale, 0, 2 * Math.PI, false);
