@@ -41,12 +41,12 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous"></script>
 
     <script type="text/html" id="template-target">
-      <div class="card mb-3">
-        <h5 class="card-header">
-          <a href="#minimize" class="float-start me-2" data-action="card-minimize" data-visible="maximized">
+      <div class="card border-danger mb-3">
+        <h5 class="card-header text-danger">
+          <a href="#minimize" class="float-start text-secondary me-2" data-action="card-minimize" data-visible="maximized">
             <i class="bi bi-dash-square-dotted"></i>
           </a>
-          <a href="#maximize" class="float-start me-2" data-action="card-maximize" data-visible="minimized">
+          <a href="#maximize" class="float-start text-secondary me-2" data-action="card-maximize" data-visible="minimized">
             <i class="bi bi-plus-square-dotted"></i>
           </a>
           Target <span class="target-index">?</span>
@@ -77,12 +77,12 @@
       </div>
     </script>
     <script type="text/html" id="template-reference">
-      <div class="card mb-3">
-        <h5 class="card-header">
-          <a href="#minimize" class="float-start me-2" data-action="card-minimize" data-visible="maximized">
+      <div class="card border-warning mb-3">
+        <h5 class="card-header text-warning">
+          <a href="#minimize" class="float-start text-secondary me-2" data-action="card-minimize" data-visible="maximized">
             <i class="bi bi-dash-square-dotted"></i>
           </a>
-          <a href="#maximize" class="float-start me-2" data-action="card-maximize" data-visible="minimized">
+          <a href="#maximize" class="float-start text-secondary me-2" data-action="card-maximize" data-visible="minimized">
             <i class="bi bi-plus-square-dotted"></i>
           </a>
           Ref-Point <span class="reference-index">?</span>
@@ -117,12 +117,12 @@
       </div>
     </script>
     <script type="text/html" id="template-gun">
-      <div class="card mb-3">
-        <h5 class="card-header">
-          <a href="#minimize" class="float-start me-2" data-action="card-minimize" data-visible="maximized">
+      <div class="card border-success mb-3">
+        <h5 class="card-header text-success">
+          <a href="#minimize" class="float-start text-secondary me-2" data-action="card-minimize" data-visible="maximized">
             <i class="bi bi-dash-square-dotted"></i>
           </a>
-          <a href="#maximize" class="float-start me-2" data-action="card-maximize" data-visible="minimized">
+          <a href="#maximize" class="float-start text-secondary me-2" data-action="card-maximize" data-visible="minimized">
             <i class="bi bi-plus-square-dotted"></i>
           </a>
           Gun <span class="gun-index">?</span>
@@ -186,12 +186,17 @@
 
     <script type="text/javascript" src="./js/arty.js"></script>
     <script type="text/javascript">
+      // Initialize GUI
       jQuery("#arty").arty({
         targetTemplate: jQuery("#template-target").html(),
         referenceTemplate: jQuery("#template-reference").html(),
         gunTemplate: jQuery("#template-gun").html(),
         gunTargetTemplate: jQuery("#template-gun-target").html()
       });
+      // Load demo setup
+      jQuery("#arty").arty("import",
+        JSON.parse("{\"name\":\"Demo\",\"targets\":[{\"dist\":120,\"angle\":30}],\"references\":[],\"guns\":[{\"ref\":\"spotter\",\"dist\":80,\"angle\":160,\"correctionX\":0,\"correctionY\":0}]}")
+      );
     </script>
 </body>
 </html>
