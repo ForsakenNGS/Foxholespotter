@@ -16,13 +16,24 @@
     referenceElements: [],
     referenceListCss: ".reference-list",
     referenceTemplate: null,
+    referenceAdded: null,
+    referenceUpdated: null,
     targetElements: [],
     targetListCss: ".target-list",
     targetTemplate: null,
+    targetAdded: null,
+    targetUpdated: null,
     gunElements: [],
     gunListCss: ".gun-list",
     gunTemplate: null,
     gunTargetTemplate: null,
+    gunAdded: null,
+    gunUpdated: null,
+    mapIdent: null,
+    mapScale: 2.17,
+    mapSizeX: 1024,
+    mapSizeY: 888,
+    mapLocation: "map/",
     positions: null,
     presetId: null,
     presetName: null,
@@ -30,7 +41,10 @@
     updateDelay: 100,
     updateTimer: null,
     visualCss: ".visual-aid",
-    visualElement: null
+    visualElement: null,
+    visualMapImg: null,
+    visualScale: 1.0,
+    visualZoom: 0
   };
 
   // Initialize on element(s)
@@ -46,17 +60,25 @@
       if (typeof options == "object") {
         $.extend(this.artyOptions, options);
       }
-      startup(this);
+      if (invokeStartup) {
+        startup(this);
+      }
     });
   };
 
   // Startup function (called after initializing a new element)
   let startup = function(el) {
+    $(el).find(".card").each(function() {
+      bindCard(el, this);
+    });
+    minimizeCard(el, $(el).find(".wind"));
     addTarget(el);
     addGun(el);
     initVisualAid(el);
     loadPresets(el);
     updateNow(el);
+    bindSpotter(el);
+    bindWind(el);
     $(el).find('[data-action="reset-all"]').on("click", function(e) {
       e.preventDefault();
       resetAll(el);
@@ -126,6 +148,92 @@
     };
   };
 
+  let calcGunSpread = function(specs, dist, x, y) {
+    if (dist <= specs.rangeMin) {
+      return { x: x, y: y, radius: specs.spreadMin };
+    } else if (dist >= specs.rangeMax) {
+      return { x: x, y: y, radius: specs.spreadMax };
+    } else {
+      let spread = specs.spreadMin + (dist - specs.rangeMin) / (specs.rangeMax - specs.rangeMin) * (specs.spreadMax - specs.spreadMin);
+      return { x: x, y: y, radius: spread };
+    }
+  };
+
+  let calcWindCorrection = function(specs, dist, windSpeed, windAzim) {
+    let correctionDistance = specs.windDisMin;
+    if (windSpeed > 0) {
+      if ((dist > specs.rangeMin) && (dist < specs.rangeMax)) {
+        correctionDistance = specs.windDisMin + (dist - specs.rangeMin) / (specs.rangeMax - specs.rangeMin) * (specs.windDisMax - specs.windDisMin);
+      } else if (dist >= specs.rangeMax) {
+        correctionDistance = specs.windDisMax;
+      }
+      correctionDistance = correctionDistance * windSpeed / 5.0;
+    } else {
+      correctionDistance = 0.0;
+    }
+    return calcAzimToCartesian(correctionDistance, (windAzim + 180) % 360);
+  };
+
+  let getGunSpecs = function(model) {
+    let spreadMin = 8, spreadMax = 15, rangeMin = 45, rangeMax = 80, windDisMin = 10, windDisMax = 40;   // Mortar tubes
+    switch (model) {
+      case "120-collie": // 120mm Push-Gun (Collie)
+        spreadMin = 22.5; spreadMax = 30;
+        rangeMin = 100; rangeMax = 250;
+        windDisMin = 10; windDisMax = 30;
+        break;
+      case "120-warden": // 120mm Emplacement (Warden)
+        spreadMin = 25; spreadMax = 35;
+        rangeMin = 100; rangeMax = 300;
+        windDisMin = 10; windDisMax = 30;
+        break;
+      case "150-collie": // 150mm Emplacement (Collie)
+        spreadMin = 32.5; spreadMax = 40;
+        rangeMin = 200; rangeMax = 350;
+        windDisMin = 15; windDisMax = 40;
+        break;
+      case "150-warden": // 150mm Emplacement (Warden)
+        spreadMin = 25; spreadMax = 35;
+        rangeMin = 100; rangeMax = 300;
+        windDisMin = 15; windDisMax = 40;
+        break;
+      case "storm-cannon": // Storm Cannon
+        spreadMin = 50; spreadMax = 100; // TODO: GUESSED!
+        rangeMin = 400; rangeMax = 1000;
+        windDisMin = 20; windDisMax = 50;
+        break;
+    }
+    return {
+      spreadMin: spreadMin, spreadMax: spreadMax,
+      rangeMin: rangeMin, rangeMax: rangeMax,
+      windDisMin: windDisMin, windDisMax: windDisMax
+    };
+  };
+
+  /****************************************************************************
+   *                         GENERAL CARDS                                    *
+   ****************************************************************************/
+
+  // Bind events for the spotter card
+  let bindSpotter = function(el) {
+    $(el).find('[data-input="map-region"],[data-input="map-position-x"],[data-input="map-position-y"]').on("change", function(e) {
+      updateLazy(el);
+    });
+  };
+
+  // Bind events for the wind card
+  let bindWind = function(el) {
+    $(el).find('[data-input="wind-level"],[data-input="wind-azimuth"]').on("change", function(e) {
+      updateLazy(el);
+    });
+    $(el).find('.wind [data-action="azimuth-swap"]').on("click", function(e) {
+      e.preventDefault();
+      let input = $(this).closest(".input-group").find('input[data-input$="-azimuth"]');
+      input.val( (parseInt(input.val() || 0) + 180) % 360 );
+      updateLazy(el);
+    });
+  };
+
   /****************************************************************************
    *                        TARGET FUNCTIONS                                  *
    ****************************************************************************/
@@ -136,23 +244,9 @@
     $(el).find(el.artyOptions.targetListCss).append(elTarget);
     el.artyOptions.targetElements.push(elTarget);
     let i = el.artyOptions.targetElements.length;
-    elTarget.find('[data-input="target-distance"]').on("change", function() {
-      updateLazy(el);
-    });
-    elTarget.find('[data-input="target-azimuth"]').on("change", function() {
-      let value = parseFloat($(this).val());
-      if (!isNaN(value)) {
-        if (value < 0) {
-          $(this).val(360 + value);
-        } else if (value > 360) {
-          $(this).val(value - 360);
-        }
-      }
-      updateLazy(el);
-    });
     elTarget.find('[data-action="azimuth-swap"]').on("click", function(e) {
       e.preventDefault();
-      let input = $(this).closest(".input-group").find("input");
+      let input = $(this).closest(".input-group").find('input[data-input$="-azimuth"]');
       input.val( (parseInt(input.val() || 0) + 180) % 360 );
       updateLazy(el);
     });
@@ -170,6 +264,25 @@
     // Update
     updateGunTargets(el);
     updateLazy(el);
+    // Callback
+    if (typeof el.artyOptions.targetAdded == "function") {
+      el.artyOptions.targetAdded(el, elTarget, i);
+    }
+    // Change events
+    elTarget.find('[data-input="target-distance"]').on("change", function() {
+      updateLazy(el);
+    });
+    elTarget.find('[data-input="target-azimuth"]').on("change", function() {
+      let value = parseFloat($(this).val());
+      if (!isNaN(value)) {
+        if (value < 0) {
+          $(this).val(360 + value);
+        } else if (value > 360) {
+          $(this).val(value - 360);
+        }
+      }
+      updateLazy(el);
+    });
     return i;
   };
 
@@ -206,23 +319,9 @@
     $(el).find(el.artyOptions.referenceListCss).append(elReference);
     el.artyOptions.referenceElements.push(elReference);
     let i = el.artyOptions.referenceElements.length;
-    elReference.find('[data-input="reference-distance"]').on("change", function() {
-      updateLazy(el);
-    });
-    elReference.find('[data-input="reference-azimuth"]').on("change", function() {
-      let value = parseFloat($(this).val());
-      if (!isNaN(value)) {
-        if (value < 0) {
-          $(this).val(360 + value);
-        } else if (value > 360) {
-          $(this).val(value - 360);
-        }
-      }
-      updateLazy(el);
-    });
     elReference.find('[data-action="azimuth-swap"]').on("click", function(e) {
       e.preventDefault();
-      let input = $(this).closest(".input-group").find("input");
+      let input = $(this).closest(".input-group").find('input[data-input$="-azimuth"]');
       input.val( (parseInt(input.val() || 0) + 180) % 360 );
       updateLazy(el);
     });
@@ -241,6 +340,25 @@
     updateGunReferences(el);
     updateReferenceRefeferences(el);
     updateLazy(el);
+    // Callback
+    if (typeof el.artyOptions.referenceAdded == "function") {
+      el.artyOptions.referenceAdded(el, elReference, i);
+    }
+    // Change events
+    elReference.find('[data-input="reference-distance"]').on("change", function() {
+      updateLazy(el);
+    });
+    elReference.find('[data-input="reference-azimuth"]').on("change", function() {
+      let value = parseFloat($(this).val());
+      if (!isNaN(value)) {
+        if (value < 0) {
+          $(this).val(360 + value);
+        } else if (value > 360) {
+          $(this).val(value - 360);
+        }
+      }
+      updateLazy(el);
+    });
     return i;
   };
 
@@ -302,31 +420,20 @@
     $(el).find(el.artyOptions.gunListCss).append(elGun);
     el.artyOptions.gunElements.push(elGun);
     let i = el.artyOptions.gunElements.length;
-    elGun.find('[data-input="gun-reference"]').on("change", function() {
-      updateLazy(el);
+    elGun.find('[data-input="gun-model"]').on("change", function() {
+      updateGun(el, elGun, i);
     });
-    elGun.find('[data-input="gun-distance"]').on("change", function() {
-      updateLazy(el);
+    elGun.find('[data-input="gun-reference"]').on("change", function() {
+      updateGun(el, elGun, i);
     });
     elGun.find('[data-input="gun-correction-x"],[data-input="gun-correction-y"]').on("change", function() {
-      updateLazy(el);
-    });
-    elGun.find('[data-input="gun-azimuth"]').on("change", function() {
-      let value = parseFloat($(this).val());
-      if (!isNaN(value)) {
-        if (value < 0) {
-          $(this).val(360 + value);
-        } else if (value > 360) {
-          $(this).val(value - 360);
-        }
-      }
-      updateLazy(el);
+      updateGun(el, elGun, i);
     });
     elGun.find('[data-action="azimuth-swap"]').on("click", function(e) {
       e.preventDefault();
-      let input = $(this).closest(".input-group").find("input");
+      let input = $(this).closest(".input-group").find('input[data-input$="-azimuth"]');
       input.val( (parseInt(input.val() || 0) + 180) % 360 );
-      updateLazy(el);
+      updateGun(el, elGun, i);
     });
     elGun.find('[data-action="gun-add"]').on("click", function(e) {
       e.preventDefault();
@@ -342,12 +449,64 @@
       let index = $(this).closest("[data-arty-gun]").attr("data-arty-gun");
       delGun(el, index);
     });
+    elGun.find('[data-action="gun-instruction-copy"]').on("click", function(e) {
+      e.preventDefault();
+      let prefix = elGun.find('[data-input="gun-instruction-prefix"]').val() || "";
+      let text = elGun.find('[data-input="gun-instruction"]').val() || "";
+      if (prefix != "") {
+        prefix += " ";
+      }
+      navigator.clipboard.writeText(prefix+text);
+    });
+    elGun.find('[data-action="gun-apply-correction"]').on("click", function(e) {
+      e.preventDefault();
+      updateGunCorrection(el, elGun, i);
+    });
     updateGunIndex(el, elGun, i);
     updateGunTargets(el, elGun);
     updateGunReferences(el, elGun);
     bindCard(el, elGun);
     // Update
-    updateLazy(el);
+    updateGun(el, elGun, i);
+    // Callback
+    if (typeof el.artyOptions.gunAdded == "function") {
+      el.artyOptions.gunAdded(el, elGun, i);
+    }
+    // Change events
+    elGun.find('[data-list="targets"]').on("change", function() {
+      updateGun(el, elGun, i);
+    });
+    elGun.find('[data-input="gun-distance"]').on("change", function() {
+      updateGun(el, elGun, i);
+    });
+    elGun.find('[data-input="gun-azimuth"]').on("change", function() {
+      let value = parseFloat($(this).val());
+      if (!isNaN(value)) {
+        if (value < 0) {
+          $(this).val(360 + value);
+        } else if (value > 360) {
+          $(this).val(value - 360);
+        }
+      }
+      updateGun(el, elGun, i);
+    });
+    elGun.find('[data-input="ref-map-position-x"],[data-input="ref-map-position-y"]').on("change", function() {
+      updateGun(el, elGun, i);
+    });
+    elGun.find('[data-input="gun-last-hit-distance"]').on("change", function() {
+      updateGun(el, elGun, i);
+    });
+    elGun.find('[data-input="gun-last-hit-azimuth"]').on("change", function() {
+      let value = parseFloat($(this).val());
+      if (!isNaN(value)) {
+        if (value < 0) {
+          $(this).val(360 + value);
+        } else if (value > 360) {
+          $(this).val(value - 360);
+        }
+      }
+      updateGun(el, elGun, i);
+    });
     return i;
   };
 
@@ -365,6 +524,51 @@
     let elGunJs = el.artyOptions.gunElements.splice(i-1, 1);
     $(elGunJs[0]).remove();
     // Update
+    updateLazy(el);
+  };
+
+  // Update index number (input form)
+  let updateGun = function(el, elGun, i) {
+    // Show / hide relevant position inputs
+    let referenceId = elGun.find('[data-input="gun-reference"]').val() || "spotter";
+    if (referenceId == "map") {
+      elGun.find('[data-input="gun-distance"]').closest(".input-group").hide();
+      elGun.find('[data-input="ref-map-position-x"]').closest(".input-group").show();
+    } else {
+      elGun.find('[data-input="ref-map-position-x"]').closest(".input-group").hide();
+      elGun.find('[data-input="gun-distance"]').closest(".input-group").show();
+    }
+    // Callback
+    if (typeof el.artyOptions.gunUpdated == "function") {
+      el.artyOptions.gunUpdated(el, elGun, i);
+    }
+    updateLazy(el);
+  };
+
+  // Update index number (input form)
+  let updateGunCorrection = function(el, elGun, i) {
+    // Check last hit
+    let lastHitDist = parseFloat($(elGun).find('[data-input="gun-last-hit-distance"]').val() || 0);
+    let lastHitAzimAngle = parseFloat($(elGun).find('[data-input="gun-last-hit-azimuth"]').val() || 0);
+    if (lastHitDist > 0) {
+      let gunPosition = el.artyOptions.positions.guns[i-1];
+      let gunAimPolar = calcCartesianToAzim(gunPosition.aimTarget.x, gunPosition.aimTarget.y, gunPosition.x, gunPosition.y);
+      let gunTarget = gunPosition.target;
+      let lastHitPosition = calcAzimToCartesian(lastHitDist, lastHitAzimAngle);
+      let lastHitOffset = calcCartesianToAzim(lastHitPosition.x, lastHitPosition.y, gunTarget.x, gunTarget.y);
+      if (lastHitOffset.dist > gunPosition.aimSpread.radius) {
+        lastHitOffset.dist -= gunPosition.aimSpread.radius;
+        let correctionOffset = calcAzimToCartesian(lastHitOffset.dist, lastHitOffset.azim);
+        let correctionX = parseFloat($(elGun).find('[data-input="gun-correction-x"]').val() || 0) - correctionOffset.x;
+        let correctionY = parseFloat($(elGun).find('[data-input="gun-correction-y"]').val() || 0) - correctionOffset.y;
+        $(elGun).find('[data-input="gun-correction-x"]').val( Math.round(correctionX * 100) / 100 );
+        $(elGun).find('[data-input="gun-correction-y"]').val( Math.round(correctionY * 100) / 100 );
+      }
+    }
+    // Callback
+    if (typeof el.artyOptions.gunUpdated == "function") {
+      el.artyOptions.gunUpdated(el, elGun, i);
+    }
     updateLazy(el);
   };
 
@@ -392,6 +596,10 @@
         $(elGunReferenceList).append(elGunReference);
         i++;
       });
+      // Allow direct map positioning
+      if ((elGun.find('[data-input="ref-map-position-x"]').length > 0) && (elGun.find('[data-input="ref-map-position-y"]').length > 0)) {
+        $(elGunReferenceList).append('<option value="map">Map Location</option>');
+      }
       // Restore previous selection if possible
       $(this).val(elGunReferenceValue);
       if ($(this).val() === null) {
@@ -410,20 +618,18 @@
     }
     elGun.find('[data-list="targets"]').each(function() {
       let elGunTargetList = this;
+      let elGunTargetValue = $(this).val() || "target-1";
       $(elGunTargetList).html("");
       let i = 0;
       jQuery(el.artyOptions.targetElements).each(function() {
-        let elGunTarget = $(el.artyOptions.gunTargetTemplate);
-        $(elGunTargetList).append(elGunTarget);
-        elGunTarget.find(".target-index").text(i + 1);
-        elGunTarget.find('[data-input="gun-target"]').attr("data-index", i + 1);
-        elGunTarget.find('[data-action="gun-target-copy"]').on("click", function(e) {
-          e.preventDefault();
-          let text = elGunTarget.find('[data-input="gun-target"]').val() || "";
-          navigator.clipboard.writeText(text);
-        });
+        $(elGunTargetList).append("<option></option>").find("option").last().attr("value", "target-"+(i+1)).text("Target "+(i+1));
         i++;
       });
+      // Restore previous selection if possible
+      $(this).val(elGunTargetValue);
+      if ($(this).val() === null) {
+        $(this).val("target-1");
+      }
     });
   };
 
@@ -453,9 +659,27 @@
     $(elCard).find('[data-visible="maximized"]').show();
   };
 
-  let getPosition = function(el, referenceId) {
+  let getPosition = function(el, referenceId, elInput) {
     if (referenceId == "spotter") {
       return { x: 0, y: 0 };
+    } else if (referenceId == "map") {
+      let spotterMapX = parseFloat($(el).find('[data-input="map-position-x"]').val() || 0);
+      let spotterMapY = el.artyOptions.mapSizeY - parseFloat($(el).find('[data-input="map-position-y"]').val() || 0);
+      let refMapXInput = $(elInput).find('[data-input="ref-map-position-x"]');
+      let refMapYInput = $(elInput).find('[data-input="ref-map-position-y"]');
+      let refMapX = parseFloat(refMapXInput.val() || 0);
+      let refMapY = el.artyOptions.mapSizeY - parseFloat(refMapYInput.val() || 0);
+      // Default to spotter location if not set
+      if (refMapXInput.val() == "") {
+        refMapX = spotterMapX;
+        refMapXInput.val(refMapX);
+      }
+      if (refMapYInput.val() == "") {
+        refMapY = spotterMapY;
+        refMapYInput.val(el.artyOptions.mapSizeY - refMapY);
+      }
+      // Return result
+      return { x: (refMapX - spotterMapX) * el.artyOptions.mapScale, y: (refMapY - spotterMapY) * el.artyOptions.mapScale, final: true };
     } else {
       // To reference point
       let referenceMatch = referenceId.match(/^ref-point-([0-9]+)$/i);
@@ -566,10 +790,19 @@
   let exportJson = function(el, name) {
     let result = {
       name: name,
+      spotter: { mapIdent: null, mapPosX: 0, mapPosY: 0 },
+      wind: { level: 0, angle: 0 },
       targets: [],
       references: [],
       guns: []
     };
+    // Spotter settings
+    result.spotter.mapIdent = el.artyOptions.mapIdent;
+    result.spotter.mapPosX = parseFloat($(el).find('[data-input="map-position-x"]').val() || 0);
+    result.spotter.mapPosY = parseFloat($(el).find('[data-input="map-position-y"]').val() || 0);
+    // Wind settings
+    result.wind.level = parseFloat($(el).find('[data-input="wind-level"]').val() || 0);
+    result.wind.angle = parseFloat($(el).find('[data-input="wind-azimuth"]').val() || 0);
     // Target positions
     jQuery(el.artyOptions.targetElements).each(function() {
       let dist = parseFloat($(this).find('[data-input="target-distance"]').val() || 0);
@@ -586,12 +819,20 @@
     // Gun positions
     jQuery(el.artyOptions.gunElements).each(function() {
       let referenceId = $(this).find('[data-input="gun-reference"]').val() || "spotter";
+      let model = $(this).find('[data-input="gun-model"]').val() || "mortar";
+      let target = $(this).find('[data-list="targets"]').val() || "target-1";
       let dist = parseFloat($(this).find('[data-input="gun-distance"]').val() || 0);
       let azimAngle = parseFloat($(this).find('[data-input="gun-azimuth"]').val() || 0);
+      let refMapPosX = parseFloat($(this).find('[data-input="ref-map-position-x"]').val() || 0);
+      let refMapPosY = parseFloat($(this).find('[data-input="ref-map-position-y"]').val() || 0);
+      let lastHitDist = parseFloat($(this).find('[data-input="gun-last-hit-distance"]').val() || 0);
+      let lastHitAzimAngle = parseFloat($(this).find('[data-input="gun-last-hit-azimuth"]').val() || 0);
       let correctionX = parseFloat($(this).find('[data-input="gun-correction-x"]').val() || 0);
       let correctionY = parseFloat($(this).find('[data-input="gun-correction-y"]').val() || 0);
       result.guns.push({
-        ref: referenceId, dist: dist, angle: azimAngle,
+        model: model, target: target,
+        ref: referenceId, dist: dist, angle: azimAngle, refMapPosX: refMapPosX, refMapPosY: refMapPosY,
+        lastHitDist: lastHitDist, lastHitAzimAngle: lastHitAzimAngle,
         correctionX: correctionX, correctionY: correctionY
       });
     });
@@ -602,6 +843,17 @@
   let importJson = function(el, data) {
     // Clear all inputs
     resetAll(el);
+    // Sptter settings
+    if (data.hasOwnProperty("spotter")) {
+      $(el).find('[data-input="map-region"]').val(data.spotter.mapIdent);
+      $(el).find('[data-input="map-position-x"]').val(data.spotter.mapPosX);
+      $(el).find('[data-input="map-position-y"]').val(data.spotter.mapPosY);
+    }
+    // Wind settings
+    if (data.hasOwnProperty("wind")) {
+      $(el).find('[data-input="wind-level"]').val(data.wind.level);
+      $(el).find('[data-input="wind-azimuth"]').val(data.wind.angle);
+    }
     // Add the correct number of targets/ref-points/guns
     while (el.artyOptions.targetElements.length < data.targets.length) {
       addTarget(el);
@@ -632,8 +884,14 @@
       let elGun = el.artyOptions.gunElements[i];
       let gunData = data.guns[i];
       $(elGun).find('[data-input="gun-reference"]').val(gunData.ref);
+      $(elGun).find('[data-input="gun-model"]').val(gunData.model);
+      $(elGun).find('[data-list="targets"]').val(gunData.target);
       $(elGun).find('[data-input="gun-distance"]').val(gunData.dist);
       $(elGun).find('[data-input="gun-azimuth"]').val(gunData.angle);
+      $(elGun).find('[data-input="ref-map-position-x"]').val(gunData.refMapPosX);
+      $(elGun).find('[data-input="ref-map-position-y"]').val(gunData.refMapPosY);
+      $(elGun).find('[data-input="gun-last-hit-distance"]').val(gunData.lastHitDist);
+      $(elGun).find('[data-input="gun-last-hit-azimuth"]').val(gunData.lastHitAzimAngle);
       $(elGun).find('[data-input="gun-correction-x"]').val(gunData.correctionX);
       $(elGun).find('[data-input="gun-correction-y"]').val(gunData.correctionY);
     }
@@ -648,12 +906,20 @@
 
   // Reset the inputs for the given gun
   let resetGun = function(el, elGun) {
+    $(elGun).find('[data-input="gun-model"]').val("mortar");
+    $(elGun).find('[data-list="targets"]').val("target-1");
     $(elGun).find('[data-input="gun-reference"]').val("spotter");
     $(elGun).find('[data-input="gun-distance"]').val("");
     $(elGun).find('[data-input="gun-azimuth"]').val(0);
     $(elGun).find('[data-input="gun-correction-x"]').val("");
     $(elGun).find('[data-input="gun-correction-y"]').val("");
     updateLazy(el);
+  };
+
+  // Reset wind settings
+  let resetWind = function(el) {
+    $(el).find('[data-input="wind-level"]').val(0);
+    $(el).find('[data-input="wind-azimuth"]').val(0);
   };
 
   // Reset all targets
@@ -683,6 +949,7 @@
   // Reset all inputs
   let resetAll = function(el) {
     el.artyOptions.presetId = null;
+    resetWind(el);
     resetTargets(el);
     resetReferences(el);
     resetGuns(el);
@@ -703,9 +970,19 @@
 
   // Update values for all gun targets
   let updateNow = function(el) {
+    updateMap(el);
     updatePositions(el);
     updateGunTargetValues(el);
     updateVisualAid(el);
+  };
+
+  // Update positions of all markers
+  let updateMap = function(el) {
+    el.artyOptions.mapIdent = $(el).find('[data-input="map-region"]').val() || "";
+    $(el).find('[data-input="map-region-img"]').attr("src", el.artyOptions.mapLocation+el.artyOptions.mapIdent+".png");
+    if (el.artyOptions.mapIdent == "") {
+      el.artyOptions.mapIdent = null;
+    }
   };
 
   // Update positions of all markers
@@ -714,6 +991,7 @@
       targets: [],
       references: [],
       guns: [],
+      spreadMax: 5,
       valid: true
     };
     let i = 0;
@@ -734,7 +1012,7 @@
     i = 0;
     jQuery(el.artyOptions.referenceElements).each(function() {
       let referenceId = $(this).find('[data-input="reference-reference"]').val() || "spotter";
-      let referencePos = getPosition(el, referenceId);
+      let referencePos = getPosition(el, referenceId, this);
       let dist = parseFloat($(this).find('[data-input="reference-distance"]').val() || 0);
       let azimAngle = parseFloat($(this).find('[data-input="reference-azimuth"]').val() || 0);
       if ((dist !== "") && (azimAngle !== "")) {
@@ -753,9 +1031,15 @@
     i = 0;
     jQuery(el.artyOptions.gunElements).each(function() {
       let referenceId = $(this).find('[data-input="gun-reference"]').val() || "spotter";
-      let referencePos = getPosition(el, referenceId);
+      let referencePos = getPosition(el, referenceId, this);
+      let model = $(this).find('[data-input="gun-model"]').val() || "mortar";
+      let specs = getGunSpecs(model);
+      el.artyOptions.positions.spreadMax = Math.max(el.artyOptions.positions.spreadMax, specs.spreadMax);
       let dist = parseFloat($(this).find('[data-input="gun-distance"]').val() || 0);
       let azimAngle = parseFloat($(this).find('[data-input="gun-azimuth"]').val() || 0);
+      if (referencePos.hasOwnProperty("final") && referencePos.final) {
+        dist = 0;
+      }
       if ((dist !== "") && (azimAngle !== "")) {
         if (referenceId != "spotter") {
           // Reverse direction if gun to reference point
@@ -773,27 +1057,46 @@
 
   // Update values for all gun targets
   let updateGunTargetValues = function(el) {
+    // Get estimated wind speed / direction
+    let windLevel = parseFloat($(el).find('[data-input="wind-level"]').val() || 0);
+    let windAzim = parseFloat($(el).find('[data-input="wind-azimuth"]').val() || 0);
+    // Calculate aim targets for each gun/target combination
     let gunIndex = 0;
     jQuery(el.artyOptions.gunElements).each(function() {
+      // Gun model and correction values
       let elGunJs = this;
       let gunPosition = el.artyOptions.positions.guns[gunIndex];
-      gunPosition.aimTargets = [];
+      gunPosition.lastHit = null;
+      let model = $(this).find('[data-input="gun-model"]').val() || "mortar";
+      let gunSpecs = getGunSpecs(model);
       let correctionX = parseFloat($(this).find('[data-input="gun-correction-x"]').val() || 0);
       let correctionY = parseFloat($(this).find('[data-input="gun-correction-y"]').val() || 0);
+      // Gun target
+      let targetId = $(this).find('[data-list="targets"]').val() || "target-1";
+      let targetIdMatch = targetId.match(/^target-([0-9]+)$/);
       let targetIndex = 0;
-      jQuery(el.artyOptions.targetElements).each(function() {
-        let targetPosition = el.artyOptions.positions.targets[targetIndex];
-        let aimPosition = {
-          x: targetPosition.x + correctionX,
-          y: targetPosition.y - correctionY
-        };
-        gunPosition.aimTargets.push(aimPosition);
-        let gunTargetPolar = calcCartesianToAzim(aimPosition.x, aimPosition.y, gunPosition.x, gunPosition.y);
-        let targetText = "Dist "+(Math.floor(gunTargetPolar.dist * 10) / 10)+"m "+
-            "Azim "+(Math.floor(gunTargetPolar.azim * 10) / 10)+"deg";
-        $(elGunJs).find('[data-input="gun-target"][data-index="'+(targetIndex+1)+'"]').val(targetText);
-        targetIndex++;
-      });
+      if (targetIdMatch.length > 0) {
+        targetIndex = parseInt(targetIdMatch[1]) - 1;
+      }
+      let targetPosition = el.artyOptions.positions.targets[targetIndex];
+      let targetPositionPolar = calcCartesianToAzim(targetPosition.x, targetPosition.y, gunPosition.x, gunPosition.y);
+      let correctionWind = calcWindCorrection(gunSpecs, targetPositionPolar.dist, windLevel, windAzim);
+      gunPosition.target = targetPosition;
+      gunPosition.aimTarget = {
+        x: targetPosition.x + correctionX + correctionWind.x,
+        y: targetPosition.y - correctionY + correctionWind.y
+      };
+      let gunTargetPolar = calcCartesianToAzim(gunPosition.aimTarget.x, gunPosition.aimTarget.y, gunPosition.x, gunPosition.y);
+      gunPosition.aimSpread = calcGunSpread(gunSpecs, gunTargetPolar.dist, targetPosition.x, targetPosition.y);
+      let targetText = "Dist "+(Math.floor(gunTargetPolar.dist * 10) / 10)+"m "+
+          "Azim "+(Math.floor(gunTargetPolar.azim * 10) / 10)+"deg";
+      $(elGunJs).find('[data-input="gun-instruction"]').val(targetText);
+      // Gun last hit
+      let lastHitDist = parseFloat($(this).find('[data-input="gun-last-hit-distance"]').val() || 0);
+      let lastHitAzimAngle = parseFloat($(this).find('[data-input="gun-last-hit-azimuth"]').val() || 0);
+      if (lastHitDist > 0) {
+        gunPosition.lastHit = calcAzimToCartesian(lastHitDist, lastHitAzimAngle);
+      }
       gunIndex++;
     });
   };
@@ -817,7 +1120,52 @@
         el.artyOptions.visualElement.append("<canvas style='width: 100%; height: calc(100vh - 50px);'></canvas>");
         el.artyOptions.visualElement = el.artyOptions.visualElement.find("canvas")[0];
       }
+      $(el.artyOptions.visualElement).on("mousemove mousedown", function(e) {
+        moveVisualAidMap(el, e);
+      });
+      $(el.artyOptions.visualElement).on("wheel", function(e) {
+        zoomVisualAidMap(el, e);
+      });
     }
+    el.artyOptions.visualMapImg = $(el).find('[data-input="map-region-img"]');
+    if (el.artyOptions.visualMapImg.length > 0) {
+      el.artyOptions.visualMapImg = el.artyOptions.visualMapImg[0];
+      $(el.artyOptions.visualMapImg).on("load", function() {
+        updateVisualAid(el);
+      });
+    } else {
+      el.artyOptions.visualMapImg = null;
+    }
+  };
+
+  // Update graphics
+  let moveVisualAidMap = function(el, e) {
+    let oe = e.originalEvent;
+    if (e.type == "mousedown") {
+      let mapPosX = parseFloat($(el).find('[data-input="map-position-x"]').val() || 0);
+      let mapPosY = parseFloat($(el).find('[data-input="map-position-y"]').val() || 0);
+      el.artyOptions.visualElement.dragStart = {
+        x: oe.x, y: oe.y, mapX: mapPosX, mapY: mapPosY
+      };
+    } else if (oe.buttons > 0) {
+      let mapPosX = el.artyOptions.visualElement.dragStart.mapX;
+      let mapPosY = el.artyOptions.visualElement.dragStart.mapY;
+      mapPosX += (el.artyOptions.visualElement.dragStart.x - oe.x) / el.artyOptions.visualScale / el.artyOptions.mapScale * 2;
+      mapPosY -= (el.artyOptions.visualElement.dragStart.y - oe.y) / el.artyOptions.visualScale / el.artyOptions.mapScale * 2;
+      $(el).find('[data-input="map-position-x"]').val( Math.round(mapPosX * 100) / 100 );
+      $(el).find('[data-input="map-position-y"]').val( Math.round(mapPosY * 100) / 100 );
+      updateMap(el);
+      updatePositions(el);
+      updateGunTargetValues(el);
+      updateVisualAid(el);
+    }
+  };
+
+  // Update graphics
+  let zoomVisualAidMap = function(el, e) {
+    let oe = e.originalEvent;
+    el.artyOptions.visualZoom = Math.max(0, el.artyOptions.visualZoom - oe.wheelDelta);
+    updateVisualAid(el);
   };
 
   // Update graphics
@@ -838,10 +1186,10 @@
     let offsetY = h * 0.5;
     let minX = 0, minY = 0, maxX = 0, maxY = 0;
     for (i = 0; i < el.artyOptions.positions.targets.length; i++) {
-      minX = Math.min(minX, el.artyOptions.positions.targets[i].x);
-      minY = Math.min(minY, el.artyOptions.positions.targets[i].y);
-      maxX = Math.max(maxX, el.artyOptions.positions.targets[i].x);
-      maxY = Math.max(maxY, el.artyOptions.positions.targets[i].y);
+      minX = Math.min(minX, el.artyOptions.positions.targets[i].x - el.artyOptions.positions.spreadMax);
+      minY = Math.min(minY, el.artyOptions.positions.targets[i].y - el.artyOptions.positions.spreadMax);
+      maxX = Math.max(maxX, el.artyOptions.positions.targets[i].x + el.artyOptions.positions.spreadMax);
+      maxY = Math.max(maxY, el.artyOptions.positions.targets[i].y + el.artyOptions.positions.spreadMax);
     }
     for (i = 0; i < el.artyOptions.positions.references.length; i++) {
       minX = Math.min(minX, el.artyOptions.positions.references[i].x);
@@ -855,13 +1203,14 @@
       maxX = Math.max(maxX, el.artyOptions.positions.guns[i].x);
       maxY = Math.max(maxY, el.artyOptions.positions.guns[i].y);
     }
-    minX -= margin;
-    minY -= margin;
-    maxX += margin;
-    maxY += margin;
+    minX -= (margin + el.artyOptions.visualZoom);
+    minY -= (margin + el.artyOptions.visualZoom);
+    maxX += (margin + el.artyOptions.visualZoom);
+    maxY += (margin + el.artyOptions.visualZoom);
     let sizeX = maxX - minX, sizeY = maxY - minY;
     let scaleX = w / sizeX, scaleY = h / sizeY;
     scale = Math.min(scaleX, scaleY);
+    el.artyOptions.visualScale = scale;
     offsetX = minX * -1;
     offsetY = minY * -1;
     if (scaleX > scaleY) {
@@ -873,28 +1222,40 @@
     let gridSize = el.artyOptions.visualGridSize;
     let markerSize = el.artyOptions.visualMarkerSize;
     // Fill Background
-    ctx.fillStyle = el.artyOptions.visualGridColorA;
-    ctx.fillRect(0, 0, w, h);
-    let gridPatternX = Math.floor(offsetX / gridSize);
-    let gridPatternY = Math.floor(offsetY / gridSize);
-    let gridPattern = (gridPatternX + gridPatternY) % 2
-    let gridOffsetX = offsetX % gridSize;
-    let gridOffsetY = offsetY % gridSize;
-    let gridCountX = Math.ceil(w / scale / gridSize) + 1;
-    let gridCountY = Math.ceil(h / scale / gridSize) + 1;
-    ctx.fillStyle = el.artyOptions.visualGridColorB;
-    for (let gridY = 0; gridY < gridCountY; gridY++) {
-      let gridFill = (gridY % 2 == gridPattern);
-      for (let gridX = 0; gridX < gridCountX; gridX++) {
-        if (gridFill) {
-          ctx.fillRect(
-            ((gridX - 1) * gridSize + gridOffsetX) * scale,
-            ((gridY - 1) * gridSize + gridOffsetY) * scale,
-            gridSize * scale, gridSize * scale
-          );
+    if ((el.artyOptions.mapIdent === null) || (el.artyOptions.visualMapImg === null)) {
+      // Checker pattern
+      ctx.fillStyle = el.artyOptions.visualGridColorA;
+      ctx.fillRect(0, 0, w, h);
+      let gridPatternX = Math.floor(offsetX / gridSize);
+      let gridPatternY = Math.floor(offsetY / gridSize);
+      let gridPattern = (gridPatternX + gridPatternY) % 2
+      let gridOffsetX = offsetX % gridSize;
+      let gridOffsetY = offsetY % gridSize;
+      let gridCountX = Math.ceil(w / scale / gridSize) + 1;
+      let gridCountY = Math.ceil(h / scale / gridSize) + 1;
+      ctx.fillStyle = el.artyOptions.visualGridColorB;
+      for (let gridY = 0; gridY < gridCountY; gridY++) {
+        let gridFill = (gridY % 2 == gridPattern);
+        for (let gridX = 0; gridX < gridCountX; gridX++) {
+          if (gridFill) {
+            ctx.fillRect(
+              ((gridX - 1) * gridSize + gridOffsetX) * scale,
+              ((gridY - 1) * gridSize + gridOffsetY) * scale,
+              gridSize * scale, gridSize * scale
+            );
+          }
+          gridFill = !gridFill;
         }
-        gridFill = !gridFill;
       }
+    } else {
+      // Tile image
+      let mapImage = el.artyOptions.visualMapImg;
+      let mapPosX = parseFloat($(el).find('[data-input="map-position-x"]').val() || 0);
+      let mapPosY = el.artyOptions.mapSizeY - parseFloat($(el).find('[data-input="map-position-y"]').val() || 0);
+      ctx.drawImage(mapImage,
+        (offsetX - mapPosX * el.artyOptions.mapScale) * scale, (offsetY - mapPosY * el.artyOptions.mapScale) * scale,
+        1024 * el.artyOptions.mapScale * scale, 888 * el.artyOptions.mapScale * scale
+      );
     }
     // Set font
     ctx.font = (markerSize * 1.75 * scale)+'px serif';
@@ -938,12 +1299,28 @@
       localY = (el.artyOptions.positions.guns[i].y + offsetY) * scale;
       // Draw aim lines
       ctx.strokeStyle = el.artyOptions.visualGunColor;
-      for (let j = 0; j < el.artyOptions.positions.guns[i].aimTargets.length; j++) {
-        let aimTarget = el.artyOptions.positions.guns[i].aimTargets[j];
+      if (el.artyOptions.positions.guns[i].aimTarget !== null) {
+        let aimTarget = el.artyOptions.positions.guns[i].aimTarget;
         ctx.beginPath();
         ctx.moveTo(localX, localY);
         ctx.lineTo((aimTarget.x + offsetX) * scale, (aimTarget.y + offsetY) * scale);
         ctx.stroke();
+      }
+      // Draw spread circles
+      ctx.strokeStyle = el.artyOptions.visualGunColor;
+      if (el.artyOptions.positions.guns[i].aimSpread !== null) {
+        let aimSpread = el.artyOptions.positions.guns[i].aimSpread;
+        ctx.beginPath();
+        ctx.arc((aimSpread.x + offsetX) * scale, (aimSpread.y + offsetY) * scale, aimSpread.radius * scale, 0, 2 * Math.PI, false);
+        ctx.stroke();
+      }
+      // Draw last hit marker
+      ctx.fillStyle = el.artyOptions.visualGunColor;
+      if (el.artyOptions.positions.guns[i].lastHit !== null) {
+        let lastHit = el.artyOptions.positions.guns[i].lastHit;
+        ctx.beginPath();
+        ctx.arc((lastHit.x + offsetX) * scale, (lastHit.y + offsetY) * scale, markerSize * scale / 2, 0, 2 * Math.PI, false);
+        ctx.fill();
       }
       // Draw marker
       ctx.strokeStyle = el.artyOptions.visualOutlineColor;

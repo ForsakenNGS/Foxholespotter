@@ -7,11 +7,118 @@
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.9.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="js/arty.css">
+    <link rel="stylesheet" href="lib/azim-input/azim-input.css">
 </head>
-<body class="bg-dark">
+<body class="bg-dark" style="overflow: hidden;">
     <div id="arty" class="m-3">
       <div class="row">
         <div class="col-md-4" style="max-height: calc(100vh - 2rem); overflow-y: auto;">
+          <div class="map">
+            <div class="card bg-dark border-primary mb-3">
+              <h5 class="card-header text-primary">
+                <a href="#minimize" class="float-start text-secondary me-2" data-action="card-minimize" data-visible="maximized">
+                  <i class="bi bi-dash-square-dotted"></i>
+                </a>
+                <a href="#maximize" class="float-start text-secondary me-2" data-action="card-maximize" data-visible="minimized">
+                  <i class="bi bi-plus-square-dotted"></i>
+                </a>
+                Spotter
+              </h5>
+              <div class="card-body" data-visible="maximized">
+                <div class="input-group input-group-sm mb-1">
+                  <span class="input-group-text bg-dark text-light border-secondary col-md-3">
+                    Region / Hex
+                    <a class="ms-auto" href="#help" data-bs-toggle="tooltip" data-bs-title="Hex / Region the spotter is in">
+                      <i class="bi bi-question-circle-fill"></i>
+                    </a>
+                  </span>
+                  <select data-input="map-region" class="form-control bg-dark text-light border-secondary">
+                    <option value="">None</option>
+                    <option value="03_BasinSionnach">Basin Sionnach</option>
+                    <option value="12_SpeakingWoods">Speaking Woods</option>
+                    <option value="14_HowlCounty">Howl County</option>
+                    <option value="21_CallumsCape">Callum's Cape</option>
+                    <option value="23_ReachingTrail">Reaching Trail</option>
+                    <option value="25_ClansheadValley">Clanshead Valley</option>
+                    <option value="30_NevishLine">Nevish Line</option>
+                    <option value="32_TheMoors">The Moors</option>
+                    <option value="34_ViperPit">Viper Pit</option>
+                    <option value="36_MorgensCrossing">Morgen's Crossing</option>
+                    <option value="41_Stonecradle">Stonecradle</option>
+                    <option value="43_CallahansPassage">Callahan's Passage</option>
+                    <option value="45_WeatheredExpanse">Weathered Expanse</option>
+                    <option value="50_OarbreakerIsles">Oarbreaker Isles</option>
+                    <option value="52_LinnMercy">The Linn of Mercy</option>
+                    <option value="54_MarbanHollow">Marban Hollow</option>
+                    <option value="56_Godcrofts">Godcrofts</option>
+                    <option value="61_FarranacCoast">Farranac Coast</option>
+                    <option value="63_Deadlands">Deadlands</option>
+                    <option value="65_EndlessShore">Endless Shore</option>
+                    <option value="70_FishermansRow">Fisherman's Row</option>
+                    <option value="72_LochMor">Loch Mór</option>
+                    <option value="74_DrownedVale">The Drowned Vale</option>
+                    <option value="76_TempestIsland">Tempest Island</option>
+                    <option value="81_Westgate">Westgate</option>
+                    <option value="83_UmbralWildwood">Umbral Wildwood</option>
+                    <option value="85_AllodsBight">Allod's Bight</option>
+                    <option value="90_Origin">Origin</option>
+                    <option value="92_Heartlands">Heartlands</option>
+                    <option value="94_ShackledChasm">Shackled Chasm</option>
+                    <option value="96_TheFingers">The Fingers</option>
+                    <option value="A1_AshFields">Ash Fields</option>
+                    <option value="A3_GreatMarch">Great March</option>
+                    <option value="A5_Terminus">Terminus</option>
+                    <option value="B2_RedRiver">Red River</option>
+                    <option value="B4_Acrithia">Acrithia</option>
+                    <option value="C3_Kalokai">Kalokai</option>
+                  </select>
+                  <img data-input="map-region-img" style="display: none;">
+                </div>
+                <div class="input-group input-group-sm mb-1">
+                  <span class="input-group-text bg-dark text-light border-secondary col-md-3">
+                    Location
+                    <a class="ms-auto" href="#help" data-bs-toggle="tooltip" data-bs-title="Position of the spotter within the hex. You can also drag the map on the right to reposition.">
+                      <i class="bi bi-question-circle-fill"></i>
+                    </a>
+                  </span>
+                  <input type="number" class="form-control bg-dark text-light border-secondary" data-input="map-position-x"
+                    step="1" placeholder="Positive = East, Negative = West" value="">
+                  <span class="input-group-text bg-dark text-light border-secondary col-md-2">Meters (E/W)</span>
+                  <input type="number" class="form-control bg-dark text-light border-secondary" data-input="map-position-y"
+                    step="1" placeholder="Positive = North, Negative = South" value="">
+                  <span class="input-group-text bg-dark text-light border-secondary col-md-2">Meters (N/S)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="wind">
+            <div class="card bg-dark border-primary mb-3">
+              <h5 class="card-header text-primary">
+                <a href="#minimize" class="float-start text-secondary me-2" data-action="card-minimize" data-visible="maximized">
+                  <i class="bi bi-dash-square-dotted"></i>
+                </a>
+                <a href="#maximize" class="float-start text-secondary me-2" data-action="card-maximize" data-visible="minimized">
+                  <i class="bi bi-plus-square-dotted"></i>
+                </a>
+                Wind (Experimental)
+              </h5>
+              <div class="card-body" data-visible="maximized">
+                <div class="input-group input-group-sm mb-1">
+                  <span class="input-group-text bg-dark text-light border-secondary col-md-3">
+                    Level / Direction
+                    <a class="ms-auto" href="#help" data-bs-toggle="tooltip" data-bs-title="Current wind level and direction for automatic correction. Set level to 0 to disable.">
+                      <i class="bi bi-question-circle-fill"></i>
+                    </a>
+                  </span>
+                  <div class="wind-direction form-control bg-dark text-white border-secondary"></div>
+                  <button type="button" class="btn btn-outline-primary" data-action="azimuth-swap" title="Backcourse / swap direction">
+                    <i class="bi bi-arrow-left-right"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
           <div class="target-list"></div>
           <div class="reference-list"></div>
           <div class="gun-list"></div>
@@ -59,19 +166,16 @@
         </h5>
         <div class="card-body" data-visible="maximized">
           <div class="input-group input-group-sm mb-1">
-            <span class="input-group-text bg-dark text-light border-secondary col-md-3">Distance</span>
-            <input type="number" class="form-control bg-dark text-light border-secondary" data-input="target-distance"
-              min="0" max="300" step="1" placeholder="Target distance (from spotter)" value="">
-            <span class="input-group-text bg-dark text-light border-secondary col-md-2">Meters</span>
-          </div>
-          <div class="input-group input-group-sm">
-            <span class="input-group-text bg-dark text-light border-secondary col-md-3">Azimuth</span>
-            <input type="number" class="form-control bg-dark text-light border-secondary" data-input="target-azimuth"
-              min="-1" max="361" step="1" placeholder="Target azimuth (from spotter)" value="0">
+            <span class="input-group-text bg-dark text-light border-secondary col-md-3">
+              Position
+              <a class="ms-auto" href="#help" data-bs-toggle="tooltip" data-bs-title="Position of the target relative to the spotter.">
+                <i class="bi bi-question-circle-fill"></i>
+              </a>
+            </span>
+            <div class="target-position form-control bg-dark text-white border-secondary"></div>
             <button type="button" class="btn btn-outline-primary" data-action="azimuth-swap" title="Backcourse / swap direction">
               <i class="bi bi-arrow-left-right"></i>
             </button>
-            <span class="input-group-text bg-dark text-light border-secondary col-md-2">Degrees</span>
           </div>
         </div>
       </div>
@@ -95,23 +199,25 @@
         </h5>
         <div class="card-body" data-visible="maximized">
           <div class="input-group input-group-sm mb-1">
-            <span class="input-group-text bg-dark text-light border-secondary col-md-3">Reference</span>
+            <span class="input-group-text bg-dark text-light border-secondary col-md-3">
+              Reference
+              <a class="ms-auto" href="#help" data-bs-toggle="tooltip" data-bs-title="Reference point for the position given below.">
+                <i class="bi bi-question-circle-fill"></i>
+              </a>
+            </span>
             <select class="form-control bg-dark text-light border-secondary" data-input="reference-reference"></select>
           </div>
           <div class="input-group input-group-sm mb-1">
-            <span class="input-group-text bg-dark text-light border-secondary col-md-3">Distance</span>
-            <input type="number" class="form-control bg-dark text-light border-secondary" data-input="reference-distance"
-              min="0" max="300" step="1" placeholder="Reference point distance (from spotter)" value="">
-            <span class="input-group-text bg-dark text-light border-secondary col-md-2">Meters</span>
-          </div>
-          <div class="input-group input-group-sm">
-            <span class="input-group-text bg-dark text-light border-secondary col-md-2">Azimuth</span>
-            <input type="number" class="form-control bg-dark text-light border-secondary" data-input="reference-azimuth"
-              min="-1" max="361" step="1" placeholder="Reference point azimuth (from spotter)" value="0">
+            <span class="input-group-text bg-dark text-light border-secondary col-md-3">
+              Position
+              <a class="ms-auto" href="#help" data-bs-toggle="tooltip" data-bs-title="Position of the reference point measured as selected above.">
+                <i class="bi bi-question-circle-fill"></i>
+              </a>
+            </span>
+            <div class="reference-position form-control bg-dark text-white border-secondary"></div>
             <button type="button" class="btn btn-outline-primary" data-action="azimuth-swap" title="Backcourse / swap direction">
               <i class="bi bi-arrow-left-right"></i>
             </button>
-            <span class="input-group-text bg-dark text-light border-secondary col-md-2">Degrees</span>
           </div>
         </div>
       </div>
@@ -138,64 +244,169 @@
         </h5>
         <div class="card-body">
           <div class="input-group input-group-sm mb-1" data-visible="maximized">
-            <span class="input-group-text bg-dark text-light border-secondary col-md-3">Reference</span>
+            <span class="input-group-text bg-dark text-light border-secondary col-md-3">
+              Model
+              <a class="ms-auto" href="#help" data-bs-toggle="tooltip" data-bs-title="Model of gun used. Used for the spread and wind correction.">
+                <i class="bi bi-question-circle-fill"></i>
+              </a>
+            </span>
+            <select class="form-control bg-dark text-light border-secondary" data-input="gun-model">
+              <option value="mortar">Mortar Tube</option>
+              <option value="120-collie">120mm Push-Gun (Collie)</option>
+              <option value="120-warden">120mm Emplacement (Warden)</option>
+              <option value="150-collie">150mm Emplacement (Collie)</option>
+              <option value="150-warden">150mm Emplacement (Warden)</option>
+              <option value="storm-cannon">Storm Cannon</option>
+            </select>
+          </div>
+          <div class="input-group input-group-sm mb-1" data-visible="maximized">
+            <span class="input-group-text bg-dark text-light border-secondary col-md-3">
+              Target
+              <a class="ms-auto" href="#help" data-bs-toggle="tooltip" data-bs-title="Target to aim the gun at.">
+                <i class="bi bi-question-circle-fill"></i>
+              </a>
+            </span>
+            <select class="form-control bg-dark text-light border-secondary" data-list="targets"></select>
+          </div>
+          <div class="input-group input-group-sm mb-1" data-visible="maximized">
+            <span class="input-group-text bg-dark text-light border-secondary col-md-3">
+              Reference
+              <a class="ms-auto" href="#help" data-bs-toggle="tooltip" data-bs-title="Reference point for the position selected below.">
+                <i class="bi bi-question-circle-fill"></i>
+              </a>
+            </span>
             <select class="form-control bg-dark text-light border-secondary" data-input="gun-reference"></select>
           </div>
-          <div class="input-group input-group-sm mb-1" data-visible="maximized">
-            <span class="input-group-text bg-dark text-light border-secondary col-md-3">Distance</span>
-            <input type="number" class="form-control bg-dark text-light border-secondary" data-input="gun-distance"
-              min="0" max="300" step="1" placeholder="Gun distance (from spotter)" value="">
-            <span class="input-group-text bg-dark text-light border-secondary col-md-2">Meters</span>
-          </div>
-          <div class="input-group input-group-sm mb-1" data-visible="maximized">
-            <span class="input-group-text bg-dark text-light border-secondary col-md-3">Azimuth</span>
-            <input type="number" class="form-control bg-dark text-light border-secondary" data-input="gun-azimuth"
-              min="-1" max="361" step="1" placeholder="Gun azimuth (from spotter)" value="0">
+          <div class="input-group input-group-sm mb-1">
+            <span class="input-group-text bg-dark text-light border-secondary col-md-3">
+              Position
+              <a class="ms-auto" href="#help" data-bs-toggle="tooltip" data-bs-title="Position of the reference point measured as selected above.">
+                <i class="bi bi-question-circle-fill"></i>
+              </a>
+            </span>
+            <div class="gun-position form-control bg-dark text-white border-secondary"></div>
             <button type="button" class="btn btn-outline-primary" data-action="azimuth-swap" title="Backcourse / swap direction">
               <i class="bi bi-arrow-left-right"></i>
             </button>
-            <span class="input-group-text bg-dark text-light border-secondary col-md-2">Degrees</span>
           </div>
           <div class="input-group input-group-sm mb-1">
-            <span class="input-group-text bg-dark text-light border-secondary col-md-3">Correction (E/W)</span>
+            <span class="input-group-text bg-dark text-light border-secondary col-md-3">
+              Location
+              <a class="ms-auto" href="#help" data-bs-toggle="tooltip" data-bs-title="Position of the gun within the hex.">
+                <i class="bi bi-question-circle-fill"></i>
+              </a>
+            </span>
+            <input type="number" class="form-control bg-dark text-light border-secondary" data-input="ref-map-position-x"
+              step="1" placeholder="Positive = East, Negative = West" value="">
+            <span class="input-group-text bg-dark text-light border-secondary col-md-2">Meters (E/W)</span>
+            <input type="number" class="form-control bg-dark text-light border-secondary" data-input="ref-map-position-y"
+              step="1" placeholder="Positive = North, Negative = South" value="">
+            <span class="input-group-text bg-dark text-light border-secondary col-md-2">Meters (N/S)</span>
+          </div>
+          <div class="input-group input-group-sm mb-1">
+            <span class="input-group-text bg-dark text-light border-secondary col-md-3">
+              Last Hit
+              <a class="ms-auto" href="#help" data-bs-toggle="tooltip" data-bs-title="Enter the actual hit location for the last shot and press the button to the right, to automatically adjust the correction values.">
+                <i class="bi bi-question-circle-fill"></i>
+              </a>
+            </span>
+            <div class="gun-last-hit form-control bg-dark text-white border-secondary"></div>
+            <button type="button" class="btn btn-outline-success" data-action="gun-apply-correction" title="Apply auto-correction for the last hit.">
+              <i class="bi bi-wrench-adjustable"></i>
+            </button>
+          </div>
+          <div class="input-group input-group-sm mb-1">
+            <span class="input-group-text bg-dark text-light border-secondary col-md-3">
+              Correction
+              <a class="ms-auto" href="#help" data-bs-toggle="tooltip" data-bs-title="Correction values for adjusting wind and inaccurate positions.">
+                <i class="bi bi-question-circle-fill"></i>
+              </a>
+            </span>
             <input type="number" class="form-control bg-dark text-light border-secondary" data-input="gun-correction-x"
               step="1" placeholder="Positive = East, Negative = West" value="">
-            <span class="input-group-text bg-dark text-light border-secondary col-md-2">Meters</span>
-          </div>
-          <div class="input-group input-group-sm mb-1">
-            <span class="input-group-text bg-dark text-light border-secondary col-md-3">Correction (N/S)</span>
+            <span class="input-group-text bg-dark text-light border-secondary col-md-2">Meters (E/W)</span>
             <input type="number" class="form-control bg-dark text-light border-secondary" data-input="gun-correction-y"
               step="1" placeholder="Positive = North, Negative = South" value="">
-            <span class="input-group-text bg-dark text-light border-secondary col-md-2">Meters</span>
+            <span class="input-group-text bg-dark text-light border-secondary col-md-2">Meters (N/S)</span>
           </div>
-          <div data-list="targets">
-
+          <div class="input-group input-group-sm mb-1">
+            <span class="input-group-text bg-dark text-light border-secondary col-md-3">
+              Instruction
+              <a class="ms-auto" href="#help" data-bs-toggle="tooltip" data-bs-title="Instructions for aiming the gun.">
+                <i class="bi bi-question-circle-fill"></i>
+              </a>
+            </span>
+            <input type="text" class="form-control bg-dark text-light border-secondary" data-input="gun-instruction-prefix" data-index="0" placeholder="Prefix (e.g. player name)">
+            <input type="text" class="form-control bg-dark text-light border-secondary" data-input="gun-instruction" data-index="0" readonly>
+            <button type="button" class="btn btn-outline-primary" data-action="gun-instruction-copy">
+              <i class="bi bi-clipboard"></i>
+            </button>
           </div>
         </div>
       </div>
     </script>
-    <script type="text/html" id="template-gun-target">
-      <div class="input-group input-group-sm mb-1">
-        <span class="input-group-text bg-dark text-light border-secondary col-md-4">Target <span class="target-index">?</span></span>
-        <input type="text" class="form-control bg-dark text-light border-secondary" data-input="gun-target" data-index="0" readonly>
-        <button type="button" class="btn btn-outline-primary" data-action="gun-target-copy">
-          <i class="bi bi-clipboard"></i>
-        </button>
-      </div>
-    </script>
 
+    <script type="text/javascript" src="./lib/azim-input/azim-input.js"></script>
     <script type="text/javascript" src="./js/arty.js"></script>
     <script type="text/javascript">
+      // Wind direction input
+      jQuery(".wind-direction").azimInput({
+          name: "wind",
+          distanceMin: 0, distanceMax: 5, distanceStep: 1,
+          distanceInputUnitText: "level"
+      });
+      jQuery(".wind-direction .azim-input-dist").attr("data-input", "wind-level");
+      jQuery(".wind-direction .azim-input-angle-number").attr("data-input", "wind-azimuth");
+      jQuery('[data-bs-toggle="tooltip"]').each(function() {
+          new bootstrap.Tooltip(this);
+      });
       // Initialize GUI
       jQuery("#arty").arty({
-        targetTemplate: jQuery("#template-target").html(),
-        referenceTemplate: jQuery("#template-reference").html(),
-        gunTemplate: jQuery("#template-gun").html(),
-        gunTargetTemplate: jQuery("#template-gun-target").html()
+          targetTemplate: jQuery("#template-target").html(),
+          targetAdded: function(el, target, i) {
+              jQuery(target).find(".target-position").azimInput({ name: "target"+i });
+              jQuery(target).find(".azim-input-dist").attr("data-input", "target-distance");
+              jQuery(target).find(".azim-input-angle-number").attr("data-input", "target-azimuth");
+              jQuery(target).find('[data-bs-toggle="tooltip"]').each(function() {
+                  new bootstrap.Tooltip(this);
+              });
+          },
+          referenceTemplate: jQuery("#template-reference").html(),
+          referenceAdded: function(el, reference, i) {
+              jQuery(reference).find(".reference-position").azimInput({ name: "reference"+i });
+              jQuery(reference).find(".azim-input-dist").attr("data-input", "reference-distance");
+              jQuery(reference).find(".azim-input-angle-number").attr("data-input", "reference-azimuth");
+              jQuery(reference).find('[data-bs-toggle="tooltip"]').each(function() {
+                  new bootstrap.Tooltip(this);
+              });
+          },
+          gunTemplate: jQuery("#template-gun").html(),
+          gunAdded: function(el, gun, i) {
+              jQuery(gun).find(".gun-position").azimInput({ name: "gun"+i });
+              jQuery(gun).find(".azim-input-dist").last().attr("data-input", "gun-distance");
+              jQuery(gun).find(".azim-input-angle-number").last().attr("data-input", "gun-azimuth");
+              jQuery(gun).find(".gun-last-hit").azimInput({ name: "gun"+i+"-last-hit" });
+              jQuery(gun).find(".azim-input-dist").last().attr("data-input", "gun-last-hit-distance");
+              jQuery(gun).find(".azim-input-angle-number").last().attr("data-input", "gun-last-hit-azimuth");
+              jQuery(gun).find('[data-bs-toggle="tooltip"]').each(function() {
+                  new bootstrap.Tooltip(this);
+              });
+          },
+          gunUpdated: function(el, gun, i) {
+              let model = jQuery(gun).find('[data-input="gun-model"]').val() || "mortar";
+              switch (model) {
+                  default:
+                      jQuery(gun).find(".gun-position").azimInput({ distanceMax: 150 });
+                      break;
+                  case "storm-cannon":
+                      jQuery(gun).find(".gun-position").azimInput({ distanceMax: 1300 });
+                      break;
+              }
+          }
       });
       // Load demo setup
       jQuery("#arty").arty("import",
-        JSON.parse("{\"name\":\"Demo\",\"targets\":[{\"dist\":120,\"angle\":30}],\"references\":[],\"guns\":[{\"ref\":\"spotter\",\"dist\":80,\"angle\":160,\"correctionX\":0,\"correctionY\":0}]}")
+        JSON.parse("{\"name\":\"Demo\",\"spotter\":{\"mapIdent\":\"96_TheFingers\",\"mapPosX\":858.85,\"mapPosY\":424.22},\"wind\":{\"level\":0,\"angle\":0},\"targets\":[{\"dist\":120,\"angle\":30}],\"references\":[],\"guns\":[{\"model\":\"mortar\",\"target\":\"target-1\",\"ref\":\"spotter\",\"dist\":80,\"angle\":160,\"lastHitDist\":0,\"lastHitAzimAngle\":0,\"correctionX\":0,\"correctionY\":0}]}")
       );
     </script>
 </body>

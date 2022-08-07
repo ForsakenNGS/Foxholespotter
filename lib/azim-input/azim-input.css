@@ -1,0 +1,26 @@
+.azim-input {
+  display: flex;
+  flex-direction: row;
+  width: auto; }
+  .azim-input .azim-input-dist,
+  .azim-input .azim-input-angle-number {
+    background: none;
+    border: 0;
+    color: inherit;
+    height: 100%;
+    text-align: right;
+    font-size: 24px; }
+  .azim-input .azim-input-dist {
+    width: 96px; }
+  .azim-input .azim-input-angle-number {
+    width: 72px; }
+  .azim-input .azim-input-dist-range {
+    flex-grow: 1;
+    width: 1%; }
+  .azim-input .azim-input-angle-svg {
+    margin: 2px; }
+  .azim-input .azim-input-unit {
+    font-size: 24px;
+    margin: auto 12px auto 0; }
+
+/*# sourceMappingURL=azim-input.css.map */
