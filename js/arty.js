@@ -4,15 +4,15 @@
     visualGridSize: 50,                 // Grid size in meters
     visualMargin: 10,                   // Margin in meters
     visualMarkerSize: 5,                // Marker size in meters
-    visualGridColorA: '#888',           // First grid color
-    visualGridColorB: '#AAA',           // Second grid color
+    visualGridColorA: '#888888',        // First grid color
+    visualGridColorB: '#AAAAAA',        // Second grid color
     visualOutlineWidth: 4,              // Width of outlines (double the actual pixel size)
-    visualOutlineColor: '#000',         // Color of outlines
-    visualTextColor: '#000',            // Color of text (marker numbers)
-    visualTargetColor: '#F66',          // Color of the target marker
-    visualGunColor: '#6F6',             // Color of the gun marker
-    visualSpotterColor: '#66F',         // Color of the spotter marker
-    visualReferenceColor: '#FF6',       // Color of the reference point marker
+    visualOutlineColor: '#000000',      // Color of outlines
+    visualTextColor: '#000000',         // Color of text (marker numbers)
+    visualTargetColor: '#FF6666',       // Color of the target marker
+    visualGunColor: '#66FF66',          // Color of the gun marker
+    visualSpotterColor: '#6666FF',      // Color of the spotter marker
+    visualReferenceColor: '#FFFF66',    // Color of the reference point marker
     referenceElements: [],
     referenceListCss: ".reference-list",
     referenceTemplate: null,
@@ -1071,6 +1071,8 @@
       gunPosition.lastHit = null;
       let model = $(this).find('[data-input="gun-model"]').val() || "mortar";
       let gunSpecs = getGunSpecs(model);
+      gunPosition.rangeMin = gunSpecs.rangeMin;
+      gunPosition.rangeMax = gunSpecs.rangeMax;
       let correctionX = parseFloat($(this).find('[data-input="gun-correction-x"]').val() || 0);
       let correctionY = parseFloat($(this).find('[data-input="gun-correction-y"]').val() || 0);
       // Gun target
@@ -1345,6 +1347,14 @@
       let markerText = i+1;
       localX = (el.artyOptions.positions.guns[i].x + offsetX) * scale;
       localY = (el.artyOptions.positions.guns[i].y + offsetY) * scale;
+      // Draw range circles
+      ctx.strokeStyle = el.artyOptions.visualGunColor+"60";
+      ctx.beginPath();
+      ctx.arc(localX, localY, el.artyOptions.positions.guns[i].rangeMin * scale, 0, 2 * Math.PI, false);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(localX, localY, el.artyOptions.positions.guns[i].rangeMax * scale, 0, 2 * Math.PI, false);
+      ctx.stroke();
       // Draw aim lines
       ctx.strokeStyle = el.artyOptions.visualGunColor;
       if (el.artyOptions.positions.guns[i].aimTarget !== null) {
