@@ -1264,7 +1264,10 @@
       let gridWidth = el.artyOptions.mapSizeX * el.artyOptions.mapScale / 17.5 * scale;
       let gridHeight = el.artyOptions.mapSizeY * el.artyOptions.mapScale / 15.1 * scale;
       ctx.lineWidth = 2;
-      for (let gx = 0; gx < 19; gx++) {
+      ctx.font = '60px serif';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#00000080';
+      for (let gx = 0; gx < 18; gx++) {
         localX = (offsetX - mapPosX * el.artyOptions.mapScale) * scale + gx * gridWidth;
         if ((localX > 0) && (localX < w)) {
           // Big grid
@@ -1273,6 +1276,11 @@
           ctx.moveTo(localX, 0);
           ctx.lineTo(localX, h);
           ctx.stroke();
+          // Big grid letter
+          ctx.fillStyle = el.artyOptions.visualTextColor;
+          let textGrid = String.fromCharCode(65+gx);
+          let textMetric = ctx.measureText(textGrid);
+          ctx.fillText(textGrid, localX + gridWidth * 0.5 - textMetric.width / 2, 80);
           // Small grid
           ctx.strokeStyle = '#00000020';
           ctx.beginPath();
@@ -1294,6 +1302,9 @@
           ctx.moveTo(0, localY);
           ctx.lineTo(w, localY);
           ctx.stroke();
+          // Big grid number
+          ctx.fillStyle = el.artyOptions.visualTextColor;
+          ctx.fillText(gy + 1, 80, localY + gridHeight * 0.5);
           // Small grid
           ctx.strokeStyle = '#00000020';
           ctx.beginPath();
