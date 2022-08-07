@@ -175,7 +175,7 @@
   };
 
   let getGunSpecs = function(model) {
-    let spreadMin = 8, spreadMax = 15, rangeMin = 45, rangeMax = 80, windDisMin = 10, windDisMax = 40;   // Mortar tubes
+    let spreadMin = 5, spreadMax = 10, rangeMin = 45, rangeMax = 80, windDisMin = 10, windDisMax = 40;   // Mortar tubes
     switch (model) {
       case "120-collie": // 120mm Push-Gun (Collie)
         spreadMin = 22.5; spreadMax = 30;
@@ -557,10 +557,12 @@
       let lastHitPosition = calcAzimToCartesian(lastHitDist, lastHitAzimAngle);
       let lastHitOffset = calcCartesianToAzim(lastHitPosition.x, lastHitPosition.y, gunTarget.x, gunTarget.y);
       if (lastHitOffset.dist > gunPosition.aimSpread.radius) {
-        lastHitOffset.dist -= gunPosition.aimSpread.radius;
+        if (lastHitOffset.dist < gunPosition.aimSpread.radius * 1.5) {
+          lastHitOffset.dist -= gunPosition.aimSpread.radius;
+        }
         let correctionOffset = calcAzimToCartesian(lastHitOffset.dist, lastHitOffset.azim);
         let correctionX = parseFloat($(elGun).find('[data-input="gun-correction-x"]').val() || 0) - correctionOffset.x;
-        let correctionY = parseFloat($(elGun).find('[data-input="gun-correction-y"]').val() || 0) - correctionOffset.y;
+        let correctionY = parseFloat($(elGun).find('[data-input="gun-correction-y"]').val() || 0) + correctionOffset.y;
         $(elGun).find('[data-input="gun-correction-x"]').val( Math.round(correctionX * 100) / 100 );
         $(elGun).find('[data-input="gun-correction-y"]').val( Math.round(correctionY * 100) / 100 );
       }
@@ -1256,6 +1258,52 @@
         (offsetX - mapPosX * el.artyOptions.mapScale) * scale, (offsetY - mapPosY * el.artyOptions.mapScale) * scale,
         1024 * el.artyOptions.mapScale * scale, 888 * el.artyOptions.mapScale * scale
       );
+      // Draw grid
+      let gridWidth = el.artyOptions.mapSizeX * el.artyOptions.mapScale / 17.5 * scale;
+      let gridHeight = el.artyOptions.mapSizeY * el.artyOptions.mapScale / 15.1 * scale;
+      ctx.lineWidth = 2;
+      for (let gx = 0; gx < 19; gx++) {
+        localX = (offsetX - mapPosX * el.artyOptions.mapScale) * scale + gx * gridWidth;
+        if ((localX > 0) && (localX < w)) {
+          // Big grid
+          ctx.strokeStyle = '#00000080';
+          ctx.beginPath();
+          ctx.moveTo(localX, 0);
+          ctx.lineTo(localX, h);
+          ctx.stroke();
+          // Small grid
+          ctx.strokeStyle = '#00000020';
+          ctx.beginPath();
+          ctx.moveTo(localX + gridWidth * 0.3333, 0);
+          ctx.lineTo(localX + gridWidth * 0.3333, h);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(localX + gridWidth * 0.6666, 0);
+          ctx.lineTo(localX + gridWidth * 0.6666, h);
+          ctx.stroke();
+        }
+      }
+      for (let gy = 0; gy < 16; gy++) {
+        localY = (offsetY - mapPosY * el.artyOptions.mapScale) * scale + gy * gridHeight;
+        if ((localY > 0) && (localY < h)) {
+          // Big grid
+          ctx.strokeStyle = '#00000080';
+          ctx.beginPath();
+          ctx.moveTo(0, localY);
+          ctx.lineTo(w, localY);
+          ctx.stroke();
+          // Small grid
+          ctx.strokeStyle = '#00000020';
+          ctx.beginPath();
+          ctx.moveTo(0, localY + gridHeight * 0.3333);
+          ctx.lineTo(w, localY + gridHeight * 0.3333);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(0, localY + gridHeight * 0.6666);
+          ctx.lineTo(w, localY + gridHeight * 0.6666);
+          ctx.stroke();
+        }
+      }
     }
     // Set font
     ctx.font = (markerSize * 1.75 * scale)+'px serif';
