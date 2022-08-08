@@ -232,6 +232,38 @@
       input.val( (parseInt(input.val() || 0) + 180) % 360 );
       updateLazy(el);
     });
+    $(el).find('.wind [data-action="wind-apply"]').on("click", function(e) {
+      setWindCorrection(el);
+    });
+  };
+
+  // Bind events for the wind card
+  let setWindCorrection = function(el) {
+    // Get estimated wind speed / direction
+    let windLevel = parseFloat($(el).find('[data-input="wind-level"]').val() || 0);
+    let windAzim = parseFloat($(el).find('[data-input="wind-azimuth"]').val() || 0);
+    // Calculate aim targets for each gun/target combination
+    let gunIndex = 0;
+    $(el.artyOptions.gunElements).each(function() {
+      // Gun model and correction values
+      let gunPosition = el.artyOptions.positions.guns[gunIndex];
+      let model = $(this).find('[data-input="gun-model"]').val() || "mortar";
+      let gunSpecs = getGunSpecs(model);
+      // Gun target
+      let targetId = $(this).find('[data-list="targets"]').val() || "target-1";
+      let targetIdMatch = targetId.match(/^target-([0-9]+)$/);
+      let targetIndex = 0;
+      if (targetIdMatch.length > 0) {
+        targetIndex = parseInt(targetIdMatch[1]) - 1;
+      }
+      let targetPosition = el.artyOptions.positions.targets[targetIndex];
+      let targetPositionPolar = calcCartesianToAzim(targetPosition.x, targetPosition.y, gunPosition.x, gunPosition.y);
+      let correctionWind = calcWindCorrection(gunSpecs, targetPositionPolar.dist, windLevel, windAzim);
+      $(this).find('[data-input="gun-correction-x"]').val( Math.round(correctionWind.x * 100) / 100 );
+      $(this).find('[data-input="gun-correction-y"]').val( Math.round(correctionWind.y * -100) / 100 );
+      gunIndex++;
+    });
+    updateLazy(el);
   };
 
   /****************************************************************************
@@ -386,7 +418,7 @@
   let updateReferenceRefeferences = function(el, elReference, index) {
     if (typeof elReference == "undefined") {
       let i = 1;
-      jQuery(el.artyOptions.referenceElements).each(function() {
+      $(el.artyOptions.referenceElements).each(function() {
         updateReferenceRefeferences(el, this, i);
         i++;
       });
@@ -398,7 +430,7 @@
       $(elReferenceList).html('<option value="spotter">Spotter to Ref-Point '+index+'</option>');
       // Add reference points
       let i = 1;
-      jQuery(el.artyOptions.referenceElements).each(function() {
+      $(el.artyOptions.referenceElements).each(function() {
         if (i < index) {
           let elReference = $('<option value="ref-point-'+i+'">Ref-Point '+index+' to Ref-Point '+i+'</option>');
           $(elReferenceList).append(elReference);
@@ -582,7 +614,7 @@
   // Update reference list (input form)
   let updateGunReferences = function(el, elGun) {
     if (typeof elGun == "undefined") {
-      jQuery(el.artyOptions.gunElements).each(function() {
+      $(el.artyOptions.gunElements).each(function() {
         updateGunReferences(el, this);
       });
       return;
@@ -593,7 +625,7 @@
       $(elGunReferenceList).html('<option value="spotter">Spotter to Gun</option>');
       // Add reference points
       let i = 1;
-      jQuery(el.artyOptions.referenceElements).each(function() {
+      $(el.artyOptions.referenceElements).each(function() {
         let elGunReference = $('<option value="ref-point-'+i+'">Gun to Ref-Point '+i+'</option>');
         $(elGunReferenceList).append(elGunReference);
         i++;
@@ -613,7 +645,7 @@
   // Update target list (input form)
   let updateGunTargets = function(el, elGun) {
     if (typeof elGun == "undefined") {
-      jQuery(el.artyOptions.gunElements).each(function() {
+      $(el.artyOptions.gunElements).each(function() {
         updateGunTargets(el, this);
       });
       return;
@@ -623,7 +655,7 @@
       let elGunTargetValue = $(this).val() || "target-1";
       $(elGunTargetList).html("");
       let i = 0;
-      jQuery(el.artyOptions.targetElements).each(function() {
+      $(el.artyOptions.targetElements).each(function() {
         $(elGunTargetList).append("<option></option>").find("option").last().attr("value", "target-"+(i+1)).text("Target "+(i+1));
         i++;
       });
@@ -793,7 +825,6 @@
     let result = {
       name: name,
       spotter: { mapIdent: null, mapPosX: 0, mapPosY: 0 },
-      wind: { level: 0, angle: 0 },
       targets: [],
       references: [],
       guns: []
@@ -806,20 +837,20 @@
     result.wind.level = parseFloat($(el).find('[data-input="wind-level"]').val() || 0);
     result.wind.angle = parseFloat($(el).find('[data-input="wind-azimuth"]').val() || 0);
     // Target positions
-    jQuery(el.artyOptions.targetElements).each(function() {
+    $(el.artyOptions.targetElements).each(function() {
       let dist = parseFloat($(this).find('[data-input="target-distance"]').val() || 0);
       let azimAngle = parseFloat($(this).find('[data-input="target-azimuth"]').val() || 0);
       result.targets.push({ dist: dist, angle: azimAngle });
     });
     // Reference positions
-    jQuery(el.artyOptions.referenceElements).each(function() {
+    $(el.artyOptions.referenceElements).each(function() {
       let referenceId = $(this).find('[data-input="reference-reference"]').val() || "spotter";
       let dist = parseFloat($(this).find('[data-input="reference-distance"]').val() || 0);
       let azimAngle = parseFloat($(this).find('[data-input="reference-azimuth"]').val() || 0);
       result.references.push({ ref: referenceId, dist: dist, angle: azimAngle });
     });
     // Gun positions
-    jQuery(el.artyOptions.gunElements).each(function() {
+    $(el.artyOptions.gunElements).each(function() {
       let referenceId = $(this).find('[data-input="gun-reference"]').val() || "spotter";
       let model = $(this).find('[data-input="gun-model"]').val() || "mortar";
       let target = $(this).find('[data-list="targets"]').val() || "target-1";
@@ -999,7 +1030,7 @@
     let i = 0;
     // Target positions
     i = 0;
-    jQuery(el.artyOptions.targetElements).each(function() {
+    $(el.artyOptions.targetElements).each(function() {
       let dist = parseFloat($(this).find('[data-input="target-distance"]').val() || 0);
       let azimAngle = parseFloat($(this).find('[data-input="target-azimuth"]').val() || 0);
       if ((dist !== "") && (azimAngle !== "")) {
@@ -1012,7 +1043,7 @@
     });
     // Reference positions
     i = 0;
-    jQuery(el.artyOptions.referenceElements).each(function() {
+    $(el.artyOptions.referenceElements).each(function() {
       let referenceId = $(this).find('[data-input="reference-reference"]').val() || "spotter";
       let referencePos = getPosition(el, referenceId, this);
       let dist = parseFloat($(this).find('[data-input="reference-distance"]').val() || 0);
@@ -1031,7 +1062,7 @@
     });
     // Gun positions
     i = 0;
-    jQuery(el.artyOptions.gunElements).each(function() {
+    $(el.artyOptions.gunElements).each(function() {
       let referenceId = $(this).find('[data-input="gun-reference"]').val() || "spotter";
       let referencePos = getPosition(el, referenceId, this);
       let model = $(this).find('[data-input="gun-model"]').val() || "mortar";
@@ -1059,12 +1090,9 @@
 
   // Update values for all gun targets
   let updateGunTargetValues = function(el) {
-    // Get estimated wind speed / direction
-    let windLevel = parseFloat($(el).find('[data-input="wind-level"]').val() || 0);
-    let windAzim = parseFloat($(el).find('[data-input="wind-azimuth"]').val() || 0);
     // Calculate aim targets for each gun/target combination
     let gunIndex = 0;
-    jQuery(el.artyOptions.gunElements).each(function() {
+    $(el.artyOptions.gunElements).each(function() {
       // Gun model and correction values
       let elGunJs = this;
       let gunPosition = el.artyOptions.positions.guns[gunIndex];
@@ -1083,12 +1111,10 @@
         targetIndex = parseInt(targetIdMatch[1]) - 1;
       }
       let targetPosition = el.artyOptions.positions.targets[targetIndex];
-      let targetPositionPolar = calcCartesianToAzim(targetPosition.x, targetPosition.y, gunPosition.x, gunPosition.y);
-      let correctionWind = calcWindCorrection(gunSpecs, targetPositionPolar.dist, windLevel, windAzim);
       gunPosition.target = targetPosition;
       gunPosition.aimTarget = {
-        x: targetPosition.x + correctionX + correctionWind.x,
-        y: targetPosition.y - correctionY + correctionWind.y
+        x: targetPosition.x + correctionX,
+        y: targetPosition.y - correctionY
       };
       let gunTargetPolar = calcCartesianToAzim(gunPosition.aimTarget.x, gunPosition.aimTarget.y, gunPosition.x, gunPosition.y);
       gunPosition.aimSpread = calcGunSpread(gunSpecs, gunTargetPolar.dist, targetPosition.x, targetPosition.y);
